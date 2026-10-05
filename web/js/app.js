@@ -559,35 +559,39 @@ $('#btnLeave').onclick = () => {
 //  LECTEUR
 // =====================================================================
 const viewer = new Viewer($('#viewer'), {
-  onInkChange: pages => scheduleSave(pages),
+  onInkChange: ink => scheduleSave(ink),
   onStatus: t => { $('#vStatus').hidden = !t; $('#vStatus').textContent = t },
+  toast,
 })
-let layers = [], saveT = 0, savePages = null
+let layers = [], saveT = 0, saveInk = null
 async function openViewer(s) {
   current = s
   show('viewer')
   $('#vTitle').textContent = s.title
   $('#vOwner').innerHTML = ' · ' + esc(s.basedOn ? 'version de ' + s.owner.name : 'chez ' + s.owner.name)
-  $('#vSaved').textContent = ''; $('#vPlay').textContent = '▶'
-  setPen(false)
+  $('#vSaved').textContent = ''
+  viewer.setMemberColor(lib.me.color)   // le stylo prend la couleur du membre
   if (relay) { relay.here = s.id; relay.send({ ev: 'hello' }) }
   layers = []; paintLayers(); renderChat(true)
   try {
     const [bytes, mine] = await Promise.all([lib.bytes(s), lib.myNotes(s.id)])
-    await viewer.open(bytes, s.name, (mine && mine.pages) || [], [])
+    if (current !== s) return
+    await viewer.open(bytes, s.name, mine, [])
     loadLayers()
   } catch (e) { console.error(e); toast('Ouverture impossible : ' + (e.message || e), 6000) }
 }
 async function loadLayers(onlyId) {
+  if (!current) return
   if (onlyId) { const p = lib.peer(onlyId); if (p) await p.load(true) }
   const got = await lib.friendsNotes(current.id)
   const off = new Set(layers.filter(l => !l.visible).map(l => l.id))
-  layers = got.map(n => ({ id: n.member.id, who: (n.member.emoji || '') + ' ' + n.member.name, color: n.member.color, data: n.pages, updated: n.updated, visible: !off.has(n.member.id) }))
+  // data = { <vue>: pages } (ou tableau de pages, ancien format) : le lecteur affiche la vue courante
+  layers = got.map(n => ({ id: n.member.id, who: (n.member.emoji || '') + ' ' + n.member.name, color: n.member.color, data: n.ink, updated: n.updated, visible: !off.has(n.member.id) }))
   viewer.setLayers(layers); paintLayers()
 }
 function paintLayers() {
   const here = lib.index.knows.filter(k => relay && relay.isOnline(k.id) && (relay.online.get(k.id) || {}).score === (current && current.id))
-  $('#vLayers').innerHTML = layers.map((l, i) => `<span class="chip ${l.visible ? '' : 'off'}" data-l="${i}" style="--c:${esc(l.color)}" title="annoté ${ago(l.updated || 0)}">${esc(l.who)} ✎</span>`).join('') +
+  $('#vLayers').innerHTML = layers.map((l, i) => `<span class="chip ${l.visible ? '' : 'off'}" data-l="${i}" style="--c:${esc(l.color)}" title="annoté ${ago(l.updated || 0)} · toucher pour afficher / masquer">${esc(l.who)} ✎</span>`).join('') +
     here.map(k => `<span class="chip" style="--c:${esc(k.color)}">🟢 ${esc(k.name)} est sur ce morceau</span>`).join('')
   $('#vLayers').hidden = !layers.length && !here.length
   for (const c of $$('#vLayers [data-l]')) c.onclick = () => { const l = layers[+c.dataset.l]; l.visible = !l.visible; viewer.setLayers(layers); paintLayers() }
@@ -616,37 +620,28 @@ $('#chatForm').onsubmit = async e => {
 $('#vChatBtn').onclick = () => $('#viewer').classList.toggle('chat-open')
 setInterval(() => { if (current && !document.hidden) renderChat() }, 30000)   // « il y a 2 min » à jour
 
-function setPen(on) {
-  viewer.ink.setEnabled(on); viewer.ink.color = lib.me.color || '#138a4a'
-  $('#vTools').hidden = !on; $('#vPen').classList.toggle('on', on)
-}
-$('#vPen').onclick = () => setPen($('#vTools').hidden)
-for (const b of $$('#vTools [data-tool]')) b.onclick = () => { viewer.ink.setTool(b.dataset.tool); $$('#vTools [data-tool]').forEach(x => x.classList.toggle('on', x === b)) }
-$('#vUndo').onclick = () => viewer.ink.undo()
-$('#vPlay').onclick = async () => { $('#vPlay').textContent = (await viewer.togglePlay()) ? '⏸' : '▶' }
-viewer.player.onEnd = () => $('#vPlay').textContent = '▶'
-addEventListener('resize', () => viewer.ink.resize())
-
-function scheduleSave(pages) {
-  savePages = pages; $('#vSaved').textContent = '…'
+// mes annotations : { <vue>: pages }, enregistrées 1,5 s après la dernière modification
+function scheduleSave(ink) {
+  saveInk = ink; $('#vSaved').textContent = '…'
   clearTimeout(saveT); saveT = setTimeout(flushSave, 1500)
 }
 async function flushSave() {
-  if (!savePages || !current) return
-  const id = current.id, pages = savePages; savePages = null
+  if (!saveInk || !current) return
+  const id = current.id, ink = saveInk; saveInk = null
   try {
-    await lib.saveNotes(id, pages)
+    await lib.saveNotes(id, JSON.parse(JSON.stringify(ink)))
     $('#vSaved').textContent = space.kind === 'demo' ? 'Enregistré (démo)' : 'Enregistré · visible par le collectif'
     relay && relay.send({ ev: 'ink', score: id })
-  } catch (e) { $('#vSaved').textContent = '⚠️ non enregistré'; toast('Enregistrement impossible : ' + e.message, 6000); savePages = savePages || pages }
+  } catch (e) { $('#vSaved').textContent = '⚠️ non enregistré'; toast('Enregistrement impossible : ' + e.message, 6000); saveInk = saveInk || ink }
 }
 $('#vBack').onclick = async () => {
   clearTimeout(saveT); await flushSave()
   viewer.close(); current = null
+  $('#viewer').classList.remove('chat-open')
   if (relay) { relay.here = ''; relay.send({ ev: 'hello' }) }
   show('main'); renderAll()
 }
-addEventListener('pagehide', () => { if (savePages) flushSave() })
+addEventListener('pagehide', () => { if (saveInk) flushSave() })
 
 // ouverture animée : ~2,6 s (ou un clic), puis l'appli
 {

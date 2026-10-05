@@ -215,15 +215,32 @@ export class Library {
   async comment(id, text) { this.index.comments.push({ score: id, at: Date.now(), text: text.slice(0, 2000) }); await this.save() }
 
   // ---- annotations : les miennes (écriture) + celles des autres (lecture) ----
-  async myNotes(id) { try { return await this.space.getJson(notesPath(id)) } catch { return null } }
-  async saveNotes(id, pages) { await this.space.put(notesPath(id), JSON.stringify({ v: 1, score: id, by: this.me.id, updated: Date.now(), pages })) }
+  // Fichier de notes : { v: 2, score, by, updated, ink: { <variantKey>: pages } }
+  //   (les annotations dépendent de la vue : pistes affichées + noms des notes, comme dans Partoche)
+  // Ancien format accepté : { v: 1, pages } = annotations de la vue par défaut.
+  async myNotes(id) { try { return notesInk(await this.space.getJson(notesPath(id))) } catch { return null } }
+  async saveNotes(id, ink) { await this.space.put(notesPath(id), JSON.stringify({ v: 2, score: id, by: this.me.id, updated: Date.now(), ink })) }
   async friendsNotes(id) {
     const out = []
     await Promise.all(this.index.knows.map(async k => {
       const p = this.peer(k.id); if (!p.folder) return
       const n = await p.notes(id)
-      if (n && n.pages && n.pages.some(pg => pg && pg.length)) out.push({ member: k, pages: n.pages, updated: n.updated })
+      const ink = notesInk(n)
+      if (ink) out.push({ member: k, ink, updated: n.updated })
     }))
     return out
   }
+}
+
+// contenu d'un fichier de notes -> { <variantKey>: pages } (format v2) ou tableau de pages (ancien format) ; null si vide
+const hasInk = pages => Array.isArray(pages) && pages.some(pg => pg && pg.length)
+export function notesInk(n) {
+  if (!n) return null
+  if (n.ink && typeof n.ink === 'object' && !Array.isArray(n.ink)) {
+    const ink = {}
+    for (const [k, pages] of Object.entries(n.ink)) if (hasInk(pages)) ink[k] = pages
+    return Object.keys(ink).length ? ink : null
+  }
+  const pages = Array.isArray(n.ink) ? n.ink : n.pages
+  return hasInk(pages) ? pages : null
 }
