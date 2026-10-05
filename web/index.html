@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Partoche and Friends</title>
+<meta name="description" content="Une maxi-bibliothèque de partitions MuseScore entre amis, chacun avec son pCloud, et on bosse les mêmes morceaux ensemble.">
+<link rel="icon" href="img/favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16181d">
+<link rel="stylesheet" href="css/app.css">
+<script src="config.js"></script>
+<script src="config.local.js" onerror="0"></script>
+<script src="lib/qrcode.js"></script>
+</head>
+<body>
+
+<!-- ================= Premier lancement ================= -->
+<section id="setup" class="screen" hidden>
+  <div class="setup-card">
+    <img src="img/logo.svg" class="logo-big" alt="">
+    <h1>Partoche and Friends</h1>
+    <p class="lead">Nos partitions MuseScore dans une seule grande bibliothèque.<br>Chacun garde les siennes dans <b>son</b> pCloud, et on bosse les mêmes morceaux ensemble.</p>
+
+    <div id="stepWelcome" class="step">
+      <h2>Bienvenue&nbsp;!</h2>
+      <button id="btnSetup" class="big primary">⚙️ Configurer</button>
+      <p class="hint">Avec ton pCloud : tes partitions dans la bibliothèque du collectif, partagées avec tes potes.</p>
+      <button id="btnDemo" class="big">🧪 Mode démo</button>
+      <p class="hint">Pour voir à quoi ça ressemble : sans compte, tout reste dans ce navigateur, rien n'est partagé.</p>
+      <p class="hint" style="text-align:center"><a href="tuto.html" target="_blank">📖 Le tuto pas à pas</a></p>
+    </div>
+
+    <div id="stepStart" class="step" hidden>
+      <h2>1. Tu pars d'où&nbsp;?</h2>
+      <div class="choices">
+        <button class="choice" data-start="new"><b>✨ Partir de rien</b><span>Je crée un collectif et j'invite mes potes.</span></button>
+        <button class="choice" data-start="link"><b>🔗 J'ai un lien qu'on m'a filé</b><span>Je rejoins le collectif d'un pote.</span></button>
+      </div>
+      <div id="startNew" hidden>
+        <label>Nom du collectif <input id="groupName" placeholder="Les copains du jeudi"></label>
+      </div>
+      <div id="startLink" hidden>
+        <label>Colle le lien d'invitation <input id="inviteIn" placeholder="https://…#rejoindre=…"></label>
+        <div id="joinBox" class="invite-box" hidden></div>
+      </div>
+      <button id="btnStartOk" class="big primary" disabled>Continuer</button>
+      <button class="link back" data-back="welcome">← Retour</button>
+    </div>
+
+    <div id="stepSpace" class="step" hidden>
+      <h2>2. Connecte ton pCloud</h2>
+      <div id="intentRecap" class="invite-box"></div>
+      <div id="clientBox" hidden class="invite-box">
+        <b>Identifiant de l'appli pCloud</b> <span class="muted">(une seule fois, voir le <a href="tuto.html#appli" target="_blank">tuto</a>)</span>
+        <label>Client ID <input id="clientIdIn" autocomplete="off" placeholder="ex. AbCd12EfGh"></label>
+        <span class="muted">Redirect URI à déclarer chez pCloud : <code id="redirectShow"></code></span>
+      </div>
+      <button id="btnPcloud" class="big primary">☁️ Connecter mon pCloud</button>
+      <p class="hint" id="pcloudHint">La page officielle pCloud s'ouvre : connecte-toi (email, Google, Apple…) puis « Autoriser ». L'appli n'écrit que dans le sous-dossier <code>Friends/</code> de ton dossier Partoche.</p>
+      <button class="link back" data-back="start">← Retour</button>
+    </div>
+
+    <div id="stepFolder" class="step" hidden>
+      <h2>3. Où sont tes partitions&nbsp;?</h2>
+      <p class="hint">Choisis ton dossier Partoche (celui partagé avec ta prof) : on lit ses partitions dans <code>MSCZ/</code>, sans rien copier. Partoche and Friends range ses notes à part, dans <code>Friends/</code> : tes annotations avec ta prof ne bougent pas.</p>
+      <div id="folderList" class="choices"></div>
+      <label>Mot de passe du lien de partage — ou colle le code Partoche envoyé à ta prof (<code>P1.…</code>)
+        <input id="folderPw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="mot de passe, ou P1.… / lien soaresden.github.io/Partoche/#P1.…"></label>
+      <p id="folderPwHint" class="hint" hidden>✅ Code Partoche reconnu : le mot de passe du lien est pris dedans.</p>
+      <button id="btnFolderOk" class="big primary" disabled>Utiliser ce dossier</button>
+      <div class="or">ou</div>
+      <button id="btnFolderNew" class="big">✨ Je n'ai pas de dossier Partoche : en créer un</button>
+    </div>
+
+    <div id="stepProfile" class="step" hidden>
+      <h2 id="profileTitle">4. Comment les autres te voient</h2>
+      <label>Prénom <input id="pName" maxlength="24" autocomplete="given-name"></label>
+      <div class="row"><label>Emoji <input id="pEmoji" maxlength="4" class="emoji-in" value="🎻"></label>
+        <label>Couleur <input id="pColor" type="color" value="#3e8ed0"></label></div>
+      <label>Instruments <input id="pInstr" placeholder="violon, piano…"></label>
+      <button id="btnProfileOk" class="big primary">C'est parti</button>
+    </div>
+    <div id="stepDevice" class="step" hidden>
+      <h2>📱 Configuration rapide</h2>
+      <p>Tape le code à 6 chiffres affiché à côté du QR code sur ton autre appareil.</p>
+      <input id="devPin" inputmode="numeric" maxlength="7" class="pin" placeholder="123456" autocomplete="one-time-code">
+      <button id="btnDevOk" class="big primary">Valider</button>
+      <button class="link back" data-back="welcome">← Configurer autrement</button>
+    </div>
+    <p id="setupErr" class="err" hidden></p>
+  </div>
+</section>
+
+<!-- ================= Bibliothèque ================= -->
+<section id="main" class="screen" hidden>
+  <header class="top">
+    <img src="img/logo.svg" class="logo" alt="" id="btnMe" title="Mon profil">
+    <div class="ttl"><b id="groupTitle">Collectif</b><span id="spaceInfo" class="muted"></span></div>
+    <div id="memberDots" class="dots"></div>
+    <button id="btnRefresh" title="Actualiser">⟳</button>
+    <button id="btnAdd" class="primary">＋ Partition</button>
+    <button id="btnInvite">🤝 Inviter</button>
+  </header>
+  <nav class="tabs">
+    <button data-tab="all" class="on">📚 Bibliothèque</button>
+    <button data-tab="work">🛠️ Chantiers</button>
+    <button data-tab="members">👥 Membres</button>
+    <input id="search" type="search" placeholder="Chercher un morceau…">
+    <select id="filterMember"><option value="">Tout le monde</option></select>
+  </nav>
+  <main id="list" class="list"></main>
+  <input type="file" id="fileIn" accept=".mscz" multiple hidden>
+</section>
+
+<!-- ================= Fiche d'un morceau ================= -->
+<dialog id="pieceDlg">
+  <form method="dialog" class="dlg-x"><button>✕</button></form>
+  <h2 id="pdTitle"></h2>
+  <div id="pdVersions"></div>
+  <h3>Qui bosse dessus</h3>
+  <div id="pdWork" class="work"></div>
+  <div class="mywork">
+    <label>Moi <select id="pdStatus"><option value="">—</option></select></label>
+    <label>Ma partie <input id="pdPart" list="pdParts" placeholder="ex. Violon 1"></label>
+    <datalist id="pdParts"></datalist>
+  </div>
+  <h3>Discussion</h3>
+  <div id="pdComments" class="comments"></div>
+  <div class="row"><input id="pdComment" placeholder="Un mot pour les autres…"><button id="pdSend" class="primary">Envoyer</button></div>
+</dialog>
+
+<!-- ================= Membres / invitation / profil ================= -->
+<dialog id="inviteDlg">
+  <form method="dialog" class="dlg-x"><button>✕</button></form>
+  <h2>🤝 Inviter des potes</h2>
+  <p><b>Un seul lien pour tout le collectif</b> : envoie le même à tout le monde. Chacun connecte son pCloud et rejoint ; les autres le voient apparaître tout seuls, personne n'a de lien à recopier.</p>
+  <div class="qr-wrap"><div id="inviteQr" class="qr"></div></div>
+  <textarea id="inviteOut" readonly rows="3"></textarea>
+  <div class="row"><button id="btnCopyInvite" class="primary">Copier le lien</button><button id="btnShareInvite">Partager…</button></div>
+  <p class="hint">⚠️ Ce lien ouvre les dossiers de tous les membres en lecture : ne l'envoie qu'à des amis.</p>
+</dialog>
+
+<dialog id="deviceDlg">
+  <form method="dialog" class="dlg-x"><button>✕</button></form>
+  <h2>📱 Ajouter un appareil</h2>
+  <p>Scanne ce QR code avec ta tablette ou ton téléphone, puis tape le code. Il retrouve ton pCloud, ton profil et le collectif : rien à reconfigurer.</p>
+  <div class="qr-wrap"><div id="deviceQr" class="qr"></div></div>
+  <p class="pin-show">Code : <b id="devicePin"></b></p>
+  <p class="hint">Valable 15 minutes. Ce QR code donne accès à ton pCloud : ne le montre à personne d'autre.</p>
+  <details><summary>Pas d'appareil photo ?</summary><textarea id="deviceOut" readonly rows="3"></textarea></details>
+</dialog>
+
+<dialog id="meDlg">
+  <form method="dialog" class="dlg-x"><button>✕</button></form>
+  <h2>Mon profil</h2>
+  <label>Prénom <input id="mName" maxlength="24"></label>
+  <div class="row"><label>Emoji <input id="mEmoji" maxlength="4" class="emoji-in"></label><label>Couleur <input id="mColor" type="color"></label></div>
+  <label>Instruments <input id="mInstr"></label>
+  <div class="row"><button id="btnMeSave" class="primary">Enregistrer</button></div>
+  <p class="muted" id="meSpace"></p>
+  <p><button id="btnDevice">📱 Ajouter un appareil (QR code)</button></p>
+  <details><summary>Avancé</summary>
+    <p><button id="btnLeave" class="danger">Quitter ce collectif sur cet appareil</button></p>
+    <p class="hint">Tes fichiers restent dans ton pCloud ; tu pourras revenir avec un lien d'invitation.</p>
+  </details>
+</dialog>
+
+<!-- ================= Lecteur ================= -->
+<section id="viewer" class="screen" hidden>
+  <header class="top vtop">
+    <button id="vBack">← Retour</button>
+    <div class="ttl"><b id="vTitle"></b><span id="vOwner" class="muted"></span></div>
+    <button id="vPlay" title="Lecture">▶</button>
+    <button id="vPen" title="Annoter">✏️ Annoter</button>
+    <span id="vTools" hidden>
+      <button data-tool="pen" class="on">🖊️</button><button data-tool="hl">🖍️</button><button data-tool="text">T</button><button data-tool="eraser">🧽</button><button id="vUndo">↶</button>
+    </span>
+    <span id="vSaved" class="muted"></span>
+  </header>
+  <div id="vLayers" class="layers"></div>
+  <div class="scroller"><div class="pages"></div></div>
+  <div id="vStatus" class="vstatus" hidden></div>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

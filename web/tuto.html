@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuto Partoche and Friends</title>
+<link rel="icon" href="img/favicon.png">
+<style>
+:root {
+  --bg: #f4f8f5; --card: #ffffff; --ink: #18221c; --muted: #5d6b62; --line: #dbe6de;
+  --green: #1aa35a; --green2: #138a4a; --soft: #e5f6ec; --warn: #fff4d6; --warnline: #f0c96a; --bad: #fde8e8; --badline: #e5484d;
+  --code: #eef3ef; --shadow: 0 2px 14px rgba(20,60,35,.08);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --card: #1b211d; --ink: #e6efe9; --muted: #98a69c; --line: #2b352f;
+  --soft: #183326; --warn: #33290f; --warnline: #8a6d1f; --bad: #3a1c1c; --code: #232b26; --shadow: none;
+} }
+:root[data-theme="dark"] { --bg: #121614; --card: #1b211d; --ink: #e6efe9; --muted: #98a69c; --line: #2b352f; --soft: #183326; --warn: #33290f; --warnline: #8a6d1f; --bad: #3a1c1c; --code: #232b26; --shadow: none; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--green2); }
+code { background: var(--code); padding: 1px 6px; border-radius: 5px; font-size: .92em; word-break: break-all; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+
+/* en-tête */
+.hero { background: linear-gradient(135deg, #3fd17a, #138a4a); color: #fff; padding: 40px 16px 34px; text-align: center; }
+.hero img { width: 96px; border-radius: 22px; box-shadow: 0 6px 24px rgba(0,0,0,.2); }
+.hero h1 { margin: 12px 0 4px; font-size: 30px; }
+.hero p { margin: 0 auto; max-width: 560px; opacity: .95; }
+
+/* sommaire */
+.toc { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc .wrap { display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px; }
+.toc a { flex: 0 0 auto; text-decoration: none; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 14px; }
+.toc a:hover { border-color: var(--green); }
+
+/* parties */
+.part { margin-top: 44px; }
+.part > h2 { display: flex; align-items: center; gap: 12px; font-size: 24px; margin: 0 0 4px; }
+.part > h2 .tag { background: var(--green); color: #fff; border-radius: 10px; padding: 2px 10px; font-size: 16px; }
+.part > .who { color: var(--muted); margin: 0 0 16px; }
+
+/* étapes */
+.step { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 18px 64px; margin: 14px 0; box-shadow: var(--shadow); }
+.step .n { position: absolute; left: 16px; top: 16px; width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 700; }
+.step h3 { margin: 2px 0 8px; font-size: 18px; }
+.step ol, .step ul { margin: 6px 0; padding-left: 20px; }
+.step li { margin: 4px 0; }
+.check { list-style: none; padding-left: 0 !important; }
+.check li { padding-left: 28px; position: relative; }
+.check li::before { content: "☐"; position: absolute; left: 4px; color: var(--green2); }
+.check li.done::before { content: "☑"; }
+.check li { cursor: pointer; user-select: none; }
+
+/* encadrés */
+.note, .warn, .bad { border-radius: 12px; padding: 10px 14px; margin: 10px 0; border: 1px solid; }
+.note { background: var(--soft); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+.warn { background: var(--warn); border-color: var(--warnline); }
+.bad { background: var(--bad); border-color: var(--badline); }
+
+/* faux écrans */
+.screen { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 12px 0; max-width: 520px; background: var(--card); }
+.screen .bar { background: var(--code); padding: 6px 10px; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.screen .bar i { width: 9px; height: 9px; border-radius: 50%; background: #ccd5cf; display: inline-block; }
+.screen .body { padding: 14px; display: grid; gap: 8px; }
+.fbtn { display: block; text-align: center; padding: 9px; border-radius: 9px; border: 1px solid var(--line); background: var(--code); font-weight: 600; }
+.fbtn.pri { background: var(--green); border-color: var(--green); color: #fff; }
+.ffield { border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 14px; color: var(--muted); background: var(--bg); }
+.ffield b { color: var(--ink); }
+.flabel { font-size: 12px; color: var(--muted); margin-bottom: -4px; }
+.hl { outline: 3px solid #ffb020; outline-offset: 2px; }
+
+.copy { display: inline-flex; gap: 6px; align-items: center; }
+.copy button { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; font-size: 14px; }
+.flow span { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.flow b { color: var(--green2); }
+
+details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; margin: 10px 0; }
+details summary { cursor: pointer; font-weight: 600; }
+.foot { text-align: center; color: var(--muted); margin-top: 50px; font-size: 14px; }
+@media (max-width: 600px) { .step { padding: 16px 14px 16px 56px; } .step .n { left: 12px; } .hero h1 { font-size: 24px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <img src="img/logo.svg" alt="">
+  <h1>Partoche and Friends — le tuto</h1>
+  <p>Une grande bibliothèque de partitions MuseScore entre potes. Chacun garde les siennes dans son pCloud, et on bosse les mêmes morceaux ensemble. On y va pas à pas.</p>
+</header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#avant">👀 Avant de commencer</a>
+  <a href="#appli">🔧 A. Installer (1 fois)</a>
+  <a href="#membre">🙋 B. Chaque membre</a>
+  <a href="#tablette">📱 C. La tablette</a>
+  <a href="#quotidien">🎶 D. Au quotidien</a>
+  <a href="#depannage">🛟 Dépannage</a>
+</div></nav>
+
+<main class="wrap">
+
+<!-- ================================================================== -->
+<section class="part" id="avant">
+  <h2>👀 Avant de commencer</h2>
+  <p class="who">2 minutes de lecture pour comprendre comment ça marche.</p>
+
+  <div class="step"><span class="n">i</span>
+    <h3>Le principe</h3>
+    <ul>
+      <li>Chacun a <b>son</b> pCloud et y garde ses partitions. Il n'y a ni serveur ni base de données.</li>
+      <li>Chacun <b>écrit uniquement chez lui</b> et <b>lit chez les autres</b> grâce à leur lien de partage. Personne ne peut écraser les fichiers d'un autre.</li>
+      <li>Le collectif tient dans <b>un seul lien d'invitation</b>, le même pour tout le monde.</li>
+    </ul>
+  </div>
+
+  <div class="step"><span class="n">i</span>
+    <h3>Tu as déjà Partoche avec ta prof ? Rien ne change pour elle</h3>
+    <p>On réutilise <b>le même dossier</b>, sans copie ni doublon :</p>
+<pre style="background:var(--code);padding:12px;border-radius:10px;overflow:auto;font-size:14px;margin:6px 0">Partoche/            ← ton dossier actuel (même lien, même mot de passe)
+├── MSCZ/            tes partitions : lues par Partoche ET par Friends
+├── MesNotes/ Prof/  ce que tu fais avec ta prof : jamais touché
+└── Friends/         ajouté par l'appli : tes notes avec les potes</pre>
+    <div class="note">✏️ <b>Deux calques séparés</b> : tes annotations avec ta prof d'un côté, tes annotations avec les potes de l'autre. Elles ne se mélangent jamais.</div>
+  </div>
+
+  <div class="step"><span class="n">i</span>
+    <h3>Qui fait quoi ?</h3>
+    <div class="flow"><span>🔧 <b>A</b> : une seule personne, une seule fois</span><span>🙋 <b>B</b> : chaque membre, une fois</span><span>📱 <b>C</b> : pour ajouter une tablette</span></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="part" id="appli">
+  <h2><span class="tag">A</span> Installer l'appli</h2>
+  <p class="who">🔧 Une seule personne le fait, une seule fois. Les autres membres n'ont <b>rien</b> à créer chez pCloud.</p>
+
+  <div class="step"><span class="n">1</span>
+    <h3>Ouvrir la page des applis pCloud</h3>
+    <ol>
+      <li>Va sur <a href="https://docs.pcloud.com/my_apps/" target="_blank" rel="noopener">docs.pcloud.com/my_apps</a>.</li>
+      <li>Connecte-toi avec ton compte pCloud habituel.</li>
+      <li>Clique sur <b>Create new app</b>.</li>
+    </ol>
+  </div>
+
+  <div class="step"><span class="n">2</span>
+    <h3>Remplir la fiche de l'appli</h3>
+    <p>Ouvre ton appli, puis l'onglet <b>Settings</b> :</p>
+    <div class="screen"><div class="bar"><i></i><i></i><i></i> docs.pcloud.com/my_apps · Settings</div><div class="body">
+      <div class="flabel">App name</div><div class="ffield"><b>Partoche and Friends</b></div>
+      <div class="flabel">Redirect URIs</div><div class="ffield hl"><b>http://localhost:53682/</b></div>
+      <div class="flabel">Website</div><div class="ffield">(facultatif, laisse vide)</div>
+      <div class="flabel">Allow implicit grant</div><div class="ffield hl"><b>◉ Allow</b> &nbsp; ○ Disallow</div>
+      <span class="fbtn pri">Save changes</span>
+    </div></div>
+    <ul class="check">
+      <li><b>App name</b> : ce que tu veux, ex. <span class="copy"><code>Partoche and Friends</code></span></li>
+      <li><b>Redirect URIs</b> : <span class="copy"><code>http://localhost:53682/</code><button data-copy="http://localhost:53682/">Copier</button></span>, sans espace et avec le <code>/</code> final.</li>
+      <li><b>Allow implicit grant</b> : <b>Allow</b>. C'est indispensable, sinon la connexion depuis la page web est refusée.</li>
+      <li>À la création de l'appli, choisis l'accès à <b>tous les dossiers</b> (All folders / Full access) : l'appli doit retrouver ton dossier Partoche et son lien de partage.</li>
+      <li>Clique sur <b>Save changes</b>.</li>
+    </ul>
+    <div class="bad">🪤 <b>Piège</b> : ne mets pas l'adresse dans <b>Website</b> à la place de <b>Redirect URIs</b>. Ce sont deux champs différents, et seul <b>Redirect URIs</b> compte. Si c'est le mauvais champ, pCloud répond « redirect_uri is not autorized ».</div>
+    <div class="warn">⏳ <b>pCloud doit valider l'appli</b>, et ça peut prendre <b>jusqu'à 2 jours</b>. Pendant ce temps, la connexion répond « redirect_uri is not autorized », même si tout est bien rempli. Pas de panique : attends la validation (en attendant, le 🧪 mode démo marche).</div>
+    <div class="note">🌐 Si la page est mise en ligne un jour (GitHub Pages), ajoute <b>aussi</b> son adresse dans <b>Redirect URIs</b>, par exemple <code>https://&lt;compte&gt;.github.io/Partoche-and-Friends/</code>. Il faut alors <b>les deux lignes</b> : celle du PC et celle du site.</div>
+  </div>
+
+  <div class="step"><span class="n">3</span>
+    <h3>Récupérer le Client ID</h3>
+    <p>Sur la fiche de l'appli, tu vois deux valeurs :</p>
+    <ul>
+      <li><b>Client ID</b> : c'est celui-là qu'il faut. Il identifie l'appli, pas ton compte.</li>
+      <li><b>Client secret</b> : <b>ne sert pas ici</b>.</li>
+    </ul>
+    <div class="bad">🔒 <b>Ne donne jamais le Client secret</b> et ne le colle nulle part, ni dans l'appli, ni dans un message, ni sur GitHub.</div>
+  </div>
+
+  <div class="step"><span class="n">4</span>
+    <h3>Donner le Client ID à l'appli</h3>
+    <p>Deux façons de faire, selon ton cas :</p>
+    <ul>
+      <li><b>Sur ton PC</b> : crée le fichier <code>web/config.local.js</code> avec cette ligne. Ce fichier reste sur ton PC et n'est jamais envoyé sur GitHub.
+<pre style="background:var(--code);padding:10px;border-radius:8px;overflow:auto;font-size:14px;margin:6px 0">window.MAF_CONFIG.pcloudClientId = 'TON_CLIENT_ID'</pre></li>
+      <li><b>Sans toucher aux fichiers</b> : laisse vide. Au moment de « Connecter mon pCloud », l'appli te demande le <b>Client ID</b> dans un champ et te montre la <b>Redirect URI</b> à déclarer (les 2 champs de l'étape 2).</li>
+    </ul>
+    <div class="note">🎁 Tes potes n'ont rien à taper : le Client ID voyage <b>dans le lien d'invitation</b>.</div>
+  </div>
+
+  <div class="step"><span class="n">5</span>
+    <h3>Lancer l'appli sur ton PC</h3>
+    <ol>
+      <li>Python doit être installé (<a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a>, coche « Add to PATH » pendant l'installation).</li>
+      <li>Double-clique sur <b><code>Lancer.bat</code></b> à la racine du dossier.</li>
+      <li>Ton navigateur s'ouvre sur <code>http://localhost:53682/</code>. Garde la fenêtre noire ouverte tant que tu utilises l'appli : la fermer arrête l'appli.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="part" id="membre">
+  <h2><span class="tag">B</span> Chaque membre : se configurer</h2>
+  <p class="who">🙋 Chaque personne, une fois, sur son PC ou sa tablette. Compte 3 minutes.</p>
+
+  <div class="step"><span class="n">1</span>
+    <h3>Choisir « Configurer »</h3>
+    <div class="screen"><div class="bar"><i></i><i></i><i></i> Partoche and Friends</div><div class="body">
+      <span class="fbtn pri hl">⚙️ Configurer</span>
+      <span class="fbtn">🧪 Mode démo</span>
+    </div></div>
+    <p><b>🧪 Mode démo</b> sert juste à regarder : sans compte, tout reste dans ton navigateur et rien n'est partagé.</p>
+  </div>
+
+  <div class="step"><span class="n">2</span>
+    <h3>Tu pars d'où ?</h3>
+    <div class="screen"><div class="bar"><i></i><i></i><i></i> 1. Tu pars d'où ?</div><div class="body">
+      <span class="fbtn">✨ Partir de rien — je crée le collectif</span>
+      <span class="fbtn">🔗 J'ai un lien qu'on m'a filé</span>
+    </div></div>
+    <ul>
+      <li><b>Tu lances le groupe</b> : ✨ <b>Partir de rien</b>, puis donne un nom au collectif (« Les copains du jeudi »…).</li>
+      <li><b>Un pote t'a invité</b> : 🔗 <b>J'ai un lien qu'on m'a filé</b>, puis colle le lien. Si tu as cliqué directement sur le lien, c'est déjà rempli et un ✅ affiche le nom du collectif et ses membres.</li>
+    </ul>
+    <p>Puis <b>Continuer</b>.</p>
+  </div>
+
+  <div class="step"><span class="n">3</span>
+    <h3>Connecter ton pCloud</h3>
+    <ol>
+      <li>Clique sur <b>☁️ Connecter mon pCloud</b>.</li>
+      <li>La <b>page officielle pCloud</b> s'ouvre. Connecte-toi comme d'habitude (email, Google, Apple…).</li>
+      <li>Clique sur <b>Autoriser</b>.</li>
+      <li>Tu reviens tout seul dans l'appli.</li>
+    </ol>
+    <div class="note">🤔 <b>Pourquoi se connecter ?</b> Lire le dossier d'un pote marche avec son lien seul. Mais pCloud refuse toute <b>écriture</b> (ajouter une partition, enregistrer tes notes) sans compte connecté. La connexion reste dans ton navigateur.</div>
+  </div>
+
+  <div class="step"><span class="n">4</span>
+    <h3>Choisir ton dossier de partitions</h3>
+    <div class="screen"><div class="bar"><i></i><i></i><i></i> 3. Où sont tes partitions ?</div><div class="body">
+      <span class="fbtn hl">📁 Partoche<br><small style="font-weight:400">https://e.pcloud.link/publink/show?code=…</small></span>
+      <div class="flabel">Mot de passe du lien de partage</div><div class="ffield">••••••••</div>
+      <span class="fbtn pri">Utiliser ce dossier</span>
+      <span class="fbtn">✨ Je n'ai pas de dossier Partoche : en créer un</span>
+    </div></div>
+    <ul>
+      <li><b>Tu as Partoche</b> : choisis ton dossier <b>Partoche</b> (il est en haut de la liste) et tape <b>le mot de passe de son lien de partage</b>, celui que ta prof utilise. L'appli vérifie qu'il est bon.</li>
+      <li><b>Pas de Partoche</b> : <b>✨ en créer un</b>. L'appli crée <code>Partoche/MSCZ</code> et son lien de partage.</li>
+    </ul>
+    <details><summary>Mettre un mot de passe sur un dossier tout neuf (pCloud Premium)</summary>
+      <ol>
+        <li>Sur pcloud.com, clic droit sur le dossier <b>Partoche</b>, puis <b>Partager</b>, puis <b>Lien de partage</b>.</li>
+        <li><b>Protection par mot de passe</b> : <b>Activé</b>, puis choisis un mot de passe.</li>
+        <li>Reviens dans l'appli, choisis le dossier et tape ce mot de passe.</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="step"><span class="n">5</span>
+    <h3>Ton profil</h3>
+    <p><b>Prénom</b>, <b>emoji</b>, <b>couleur</b>, <b>instruments</b> : c'est ce que les autres voient sur tes annotations et dans la liste des membres. Puis <b>C'est parti</b>.</p>
+    <div class="note">🎉 C'est fini, tu arrives dans la bibliothèque du collectif.</div>
+  </div>
+
+  <div class="step"><span class="n">6</span>
+    <h3>Si tu as lancé le groupe : inviter les potes</h3>
+    <ol>
+      <li>Clique sur <b>🤝 Inviter</b> en haut.</li>
+      <li><b>Copier le lien</b> (ou montre le QR code), puis envoie <b>le même lien à tout le monde</b> (mail, WhatsApp…).</li>
+      <li>Chaque pote fait la partie <b>B</b>. Tout le collectif le voit apparaître tout seul : personne n'a de lien à recopier entre deux personnes, même à 10.</li>
+    </ol>
+    <div class="warn">⚠️ Ce lien ouvre en lecture les dossiers de tous les membres. Ne l'envoie qu'à des amis.</div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="part" id="tablette">
+  <h2><span class="tag">C</span> Ajouter ta tablette (sans tout refaire)</h2>
+  <p class="who">📱 Ton PC est déjà configuré ? La tablette reprend tout en 30 secondes.</p>
+
+  <div class="step"><span class="n">1</span>
+    <h3>Sur le PC : afficher le QR code</h3>
+    <ol>
+      <li>Clique sur le <b>logo</b> en haut à gauche (<i>Mon profil</i>).</li>
+      <li><b>📱 Ajouter un appareil (QR code)</b>.</li>
+      <li>Un QR code et un <b>code à 6 chiffres</b> s'affichent.</li>
+    </ol>
+  </div>
+  <div class="step"><span class="n">2</span>
+    <h3>Sur la tablette : scanner, taper le code</h3>
+    <ol>
+      <li>Ouvre l'<b>appareil photo</b> et vise le QR code, puis touche le lien qui apparaît.</li>
+      <li>Tape le <b>code à 6 chiffres</b> affiché sur le PC, puis <b>Valider</b>.</li>
+      <li>Tout est repris : pCloud, dossier, profil, collectif. 🎉</li>
+    </ol>
+    <div class="warn">⏱️ Le QR code est valable <b>15 minutes</b>. Il donne accès à ton pCloud : ne le montre à personne d'autre.</div>
+    <div class="note">💡 Sur iPad : Partager, puis <b>Sur l'écran d'accueil</b>, pour l'avoir comme une appli.</div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="part" id="quotidien">
+  <h2><span class="tag">D</span> Au quotidien</h2>
+  <p class="who">🎶 Ce qu'on fait une fois que tout est en place.</p>
+
+  <div class="step"><span class="n">♪</span>
+    <h3>Ajouter des partitions</h3>
+    <ul>
+      <li><b>＋ Partition</b>, puis choisis un ou plusieurs <code>.mscz</code>. Ils vont dans ton <code>MSCZ/</code>, donc ils apparaissent aussi dans Partoche.</li>
+      <li>Sur la fiche d'un morceau : <b>＋ Ajouter ma version</b> pour un arrangement, une correction ou une autre tonalité. Elle reste chez toi et apparaît sous le même morceau.</li>
+    </ul>
+  </div>
+
+  <div class="step"><span class="n">♪</span>
+    <h3>Bosser un morceau ensemble</h3>
+    <p>Clique sur un morceau dans la bibliothèque :</p>
+    <ul>
+      <li><b>Moi</b> : 💡 envie · 🛠️ je bosse dessus · ✅ prêt</li>
+      <li><b>Ma partie</b> : « Basse », « Violon 1 », « main gauche »…</li>
+      <li><b>Discussion</b> : un mot pour les autres (« On le cale jeudi ? »).</li>
+    </ul>
+    <p>L'onglet <b>🛠️ Chantiers</b> montre tous les morceaux sur lesquels quelqu'un bosse.</p>
+  </div>
+
+  <div class="step"><span class="n">♪</span>
+    <h3>Lire et annoter</h3>
+    <ol>
+      <li>Sur la fiche, clique sur <b>Ouvrir</b>.</li>
+      <li><b>▶</b> lance la lecture audio.</li>
+      <li><b>✏️ Annoter</b>, puis 🖊️ stylo · 🖍️ surligneur · T texte · 🧽 gomme · ↶ annuler.</li>
+      <li>C'est enregistré tout seul (« Enregistré · visible par le collectif ») dans <code>Friends/Notes/</code>.</li>
+    </ol>
+    <p>En haut de la partition, il y a <b>une pastille par pote</b> qui a annoté : clique dessus pour afficher ou masquer son calque. « 🟢 X est sur ce morceau » apparaît quand un pote l'a ouvert en même temps que toi.</p>
+  </div>
+
+  <div class="step"><span class="n">♪</span>
+    <h3>Voir qui est là</h3>
+    <p><b>👥 Membres</b> : qui est en ligne, depuis quand, combien de partitions chacun apporte. Les petites bulles en haut de l'écran ont un point vert quand la personne est en ligne.</p>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="part" id="depannage">
+  <h2>🛟 Dépannage</h2>
+
+  <details><summary>pCloud affiche « redirect_uri is not autorized »</summary>
+    <p><b>Cause n° 1 : l'appli n'est pas encore validée par pCloud.</b> Ça peut prendre <b>jusqu'à 2 jours</b> après sa création. Attends, puis réessaie.</p>
+    <p>Cause n° 2 : l'adresse a été mise dans <b>Website</b> au lieu de <b>Redirect URIs</b>, ou n'est déclarée nulle part (partie A, étape 2).</p>
+    <ul>
+      <li>Ouvre <a href="https://docs.pcloud.com/my_apps/" target="_blank" rel="noopener">docs.pcloud.com/my_apps</a>, puis ton appli, puis l'onglet <b>Settings</b>, puis le champ <b>Redirect URIs</b> (pas Website). Vérifie aussi <b>Allow implicit grant : Allow</b>.</li>
+      <li>Il doit y avoir <b>exactement</b> l'adresse affichée dans la barre du navigateur, par exemple <code>http://localhost:53682/</code>, avec le <code>/</code> final et sans espace.</li>
+      <li>Clique sur <b>Save</b>, attends une minute, puis recommence.</li>
+      <li>Version en ligne : ajoute aussi l'adresse du site (2 lignes au total).</li>
+    </ul>
+  </details>
+
+  <details><summary>Le bouton « Connecter mon pCloud » est grisé</summary>
+    <p>L'appli ne connaît pas encore le <b>Client ID</b>. Tape-le dans le champ au-dessus du bouton, ou mets-le dans <code>web/config.local.js</code> (partie A, étape 4). Si tu as été invité, rouvre le <b>lien d'invitation</b> : il contient le Client ID.</p>
+  </details>
+
+  <details><summary>« Mot de passe incorrect » au choix du dossier</summary>
+    <p>C'est le mot de passe du <b>lien de partage</b> du dossier, pas celui de ton compte pCloud. C'est celui que tu as donné à ta prof. Pour le retrouver ou le changer : pcloud.com, le dossier, <b>Partager</b>, puis <b>Protection par mot de passe</b>. Attention : si tu le changes, il faut aussi le redonner à ta prof.</p>
+  </details>
+
+  <details><summary>Je ne vois pas les partitions d'un pote</summary>
+    <ul>
+      <li>Clique sur <b>⟳</b> (actualiser).</li>
+      <li>Onglet <b>👥 Membres</b> : si son nom affiche « ⚠️ dossier injoignable », son lien de partage a changé ou n'a plus de mot de passe valide. Il doit refaire la partie B, étape 4.</li>
+    </ul>
+  </details>
+
+  <details><summary>« Lancer.bat » se ferme tout de suite ou dit « Python introuvable »</summary>
+    <p>Installe Python depuis <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a> en cochant <b>Add python.exe to PATH</b>, puis relance <code>Lancer.bat</code>.</p>
+  </details>
+
+  <details><summary>Repartir de zéro sur cet appareil</summary>
+    <p>Clique sur le <b>logo</b>, puis <b>Avancé</b>, puis <b>Quitter ce collectif sur cet appareil</b>. Tes fichiers restent dans ton pCloud. Reconnecte-toi (ou rouvre un lien d'invitation) pour revenir.</p>
+  </details>
+</section>
+
+<p class="foot"><a href="./">← Ouvrir Partoche and Friends</a></p>
+</main>
+
+<script>
+// boutons « Copier » + cases à cocher qu'on peut cocher en avançant
+for (const b of document.querySelectorAll('[data-copy]')) b.onclick = async () => {
+  try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copié ✓'; setTimeout(() => b.textContent = 'Copier', 1500) } catch { }
+}
+for (const li of document.querySelectorAll('.check li')) li.onclick = e => { if (e.target.tagName !== 'BUTTON') li.classList.toggle('done') }
+// l'adresse de retour réelle de cette installation
+const here = location.origin + location.pathname.replace(/tuto\.html$/, '')
+if (/^https?:/.test(here) && !here.includes('localhost:53682')) for (const c of document.querySelectorAll('.copy code')) if (c.textContent === 'http://localhost:53682/') c.insertAdjacentHTML('afterend', ` <span style="color:var(--muted)">(ici : <code>${here}</code>)</span>`)
+</script>
+</body>
+</html>
