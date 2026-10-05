@@ -749,7 +749,12 @@ $('#chatForm').onsubmit = async e => {
   renderChat(true)
 }
 // sur petit écran le chat se replie ; le bouton 💬 l'ouvre / le ferme
-$('#vChatBtn').onclick = () => $('#viewer').classList.toggle('chat-open')
+const chatOpen = () => $('#viewer').classList.contains('chat-open')
+function setChat(on) { $('#viewer').classList.toggle('chat-open', on); if (on) { navGuard(); renderChat(true) } }
+$('#vChatBtn').onclick = () => setChat(!chatOpen())
+$('#chatClose').onclick = () => setChat(false)
+// petit écran : toucher la partition referme la discussion
+$('#viewer .vbody').addEventListener('pointerdown', e => { if (chatOpen() && !e.target.closest('#vChat') && innerWidth <= 900) setChat(false) }, true)
 setInterval(() => { if (current && !document.hidden) renderChat() }, 30000)   // « il y a 2 min » à jour
 
 // mes annotations : { <vue>: pages }, enregistrées 1,5 s après la dernière modification
@@ -787,6 +792,7 @@ addEventListener('popstate', () => {
   if (d) { d.close(); return navArm() }
   if ($('#stMenu')) { closeStatusMenu(); return navArm() }
   if (tutoOpen()) { closeTuto(); return navArm() }
+  if (!$('#viewer').hidden && $('#viewer').classList.contains('chat-open') && innerWidth <= 900) { $('#viewer').classList.remove('chat-open'); return navArm() }
   if (!$('#viewer').hidden) { $('#vBack').click(); return navArm() }
   if (!$('#main').hidden && tab !== 'all') { $('.tabs [data-tab=all]').click(); return navArm() }
   // rien d'ouvert : on laisse partir (2e appui = on quitte)
