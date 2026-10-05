@@ -275,7 +275,7 @@ function stepInstall() {
 function stepConfigure() {
   const start = A.goal === 'create'
     ? '<li><b>✨ Partir de rien</b>, puis donne un <b>nom</b> au collectif (ex. « Les copains du jeudi »), puis <b>Continuer</b>.</li>'
-    : '<li><b>🔗 J’ai un lien qu’on m’a filé</b>, puis colle le lien reçu, puis <b>Continuer</b>. Si tu as cliqué directement sur le lien, il est déjà rempli et un ✅ affiche le nom du collectif.</li>'
+    : '<li><b>🔗 J’ai un lien qu’on m’a filé</b>, puis colle le lien reçu (ou <b>📷 Scanner le QR code d’invitation</b>), puis <b>Continuer</b>. Si tu as cliqué directement sur le lien, il est déjà rempli et un ✅ affiche le nom du collectif.</li>'
   const folder = A.partoche === 'yes'
     ? '<li><b>Où sont tes partitions ?</b> Choisis ton dossier <b>Partoche</b> (en haut de la liste) et tape <b>le mot de passe de son lien</b>, celui de ta prof. Tu peux aussi coller le code <code>P1.…</code> du message envoyé à ta prof. Tes partitions de <code>MSCZ/</code> sont reprises telles quelles, et l’appli ne range ses notes que dans <code>Friends/</code> : ta prof ne voit aucune différence.</li>'
     : '<li><b>Où sont tes partitions ?</b> Clique sur <b>✨ Je n’ai pas de dossier Partoche : en créer un</b>. L’appli crée <code>Partoche/MSCZ</code> et son lien de partage.</li>'
@@ -319,7 +319,7 @@ function finish() {
     if (A.already === 'qr') S('Reprends tout avec le QR code', `
       <ol>
         <li>Sur l’appareil <b>déjà configuré</b> : clique sur le <b>logo</b> en haut à gauche (<i>Mon profil</i>), puis <b>📱 Ajouter un appareil (QR code)</b>.</li>
-        <li>Sur ${A.device === 'android' ? 'ton Android' : 'le nouvel appareil'} : vise le QR code avec l’<b>appareil photo</b> et touche le lien. ${A.device === 'android' ? 'Si Android propose d’ouvrir avec <b>Partoche &amp; Friends</b>, accepte. Sinon, copie le lien et colle-le dans l’appli (Configurer, puis J’ai un lien).' : ''}</li>
+        <li>Sur ${A.device === 'android' ? 'ton Android' : 'le nouvel appareil'}, dans l’appli : <b>📷 Scanner un QR code</b> (sur l’écran d’accueil), puis vise le QR code. Tu peux aussi le scanner avec l’appareil photo et toucher le lien.</li>
         <li>Tape le <b>code à 6 chiffres</b> affiché à côté du QR code, puis <b>Valider</b>. C’est tout : pCloud, dossier, profil et collectif sont repris.</li>
       </ol>
       <div class="warn">⏱️ Le QR code est valable 15 minutes et donne accès à ton pCloud : ne le montre à personne d’autre.</div>`)

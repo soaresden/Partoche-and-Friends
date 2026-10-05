@@ -4,6 +4,7 @@ import { newGroup, readInvite, inviteUrl, randomId, Relay, makeDeviceLink, readD
 import { Library, emptyIndex, STATUS, normTitle } from './library.js'
 import { Viewer, scoreInfo } from './viewer.js'
 import { togglePreview, stopPreview, previewing } from './preview.js'
+import { scanQR } from './scan.js'
 import { lsGet, lsSet } from './partoche/store.js'
 
 const $ = s => document.querySelector(s)
@@ -108,6 +109,16 @@ $('#inviteIn').oninput = () => {
   paintInvite(); paintStartOk()
 }
 $('#groupName').oninput = () => lsSet('maf:groupName', $('#groupName').value.trim())
+async function scanAndUse() {
+  const t = await scanQR(); if (!t) return
+  const dev = readDeviceLink(t); if (dev) return setupDevice(dev)
+  const inv = readInvite(t)
+  if (!inv) return setupMsg('Ce QR code n’est ni une invitation ni un QR « appareil ».')
+  lsSet('maf:invite', inv); setClientId(inv.c); lsSet('maf:intent', 'link')
+  setupStart('link'); $('#inviteIn').value = t; paintInvite(); paintStartOk()
+}
+$('#btnScan').onclick = scanAndUse
+$('#btnScan2').onclick = scanAndUse
 $('#btnStartOk').onclick = () => {
   const k = $('#btnStartOk').dataset.k
   lsSet('maf:intent', k)
@@ -661,7 +672,7 @@ const viewer = new Viewer($('#viewer'), {
 })
 let layers = [], saveT = 0, saveInk = null
 async function openViewer(s) {
-  stopPreview(); closeStatusMenu()
+  stopPreview(); closeStatusMenu(); navGuard()
   current = s
   show('viewer')
   $('#vTitle').textContent = s.title
@@ -739,6 +750,23 @@ $('#vBack').onclick = async () => {
   show('main'); renderAll()
 }
 addEventListener('pagehide', () => { if (saveInk) flushSave() })
+
+// =====================================================================
+//  RETOUR : la touche retour d'Android / du navigateur ferme d'abord ce qui est ouvert
+//  (menu, fenêtre, partition), au lieu de quitter l'appli
+// =====================================================================
+// une « garde » dans l'historique : le retour la consomme, on ferme ce qui est ouvert et on la remet
+const navGuard = () => { if (!history.state || history.state.paf !== 'g') history.pushState({ paf: 'g' }, '') }
+const navArm = () => setTimeout(navGuard, 0)
+addEventListener('popstate', () => {
+  const d = [...document.querySelectorAll('dialog[open]')].pop()
+  if (d) { d.close(); return navArm() }
+  if ($('#stMenu')) { closeStatusMenu(); return navArm() }
+  if (!$('#viewer').hidden) { $('#vBack').click(); return navArm() }
+  if (!$('#main').hidden && tab !== 'all') { $('.tabs [data-tab=all]').click(); return navArm() }
+  // rien d'ouvert : on laisse partir (2e appui = on quitte)
+})
+navGuard()
 
 // ouverture animée : ~3 s (ou un clic), puis l'appli
 {

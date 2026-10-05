@@ -27,22 +27,28 @@ export function searchTitle(title) {
 const cache = () => lsGet(CACHE, {}) || {}
 export const cachedArtist = title => cache()[norm(searchTitle(title))]
 
-let queue = Promise.resolve()
+let queue = Promise.resolve(), pauseUntil = 0
+// le service refuse (403/429) si on va trop vite : on fait une pause et on reprendra au prochain passage
+export const searchPaused = () => Date.now() < pauseUntil
 export function guessArtist(title) {
   const key = norm(searchTitle(title))
   if (!key || key.length < 2) return Promise.resolve(null)
   const c = cache()[key]
   if (c !== undefined) return Promise.resolve(c)
-  // une requête à la fois, espacées (le service public limite le rythme)
-  queue = queue.then(() => lookup(key, searchTitle(title))).then(r => new Promise(res => setTimeout(() => res(r), 350)))
-  return queue
+  if (searchPaused()) return Promise.resolve(null)
+  // une requête à la fois, espacées de 3 s (le service public limite le rythme)
+  const p = queue.then(() => searchPaused() ? null : lookup(key, searchTitle(title)))
+  queue = p.then(() => new Promise(res => setTimeout(res, 3000)), () => new Promise(res => setTimeout(res, 3000)))
+  return p
 }
 
 async function lookup(key, q) {
   if (cache()[key] !== undefined) return cache()[key]
   let artist = null
   try {
-    const d = await (await fetch('https://itunes.apple.com/search?' + new URLSearchParams({ term: q, entity: 'song', limit: 25 }))).json()
+    const r = await fetch('https://itunes.apple.com/search?' + new URLSearchParams({ term: q, entity: 'song', limit: 25 }))
+    if (r.status === 403 || r.status === 429) { pauseUntil = Date.now() + 90000; return null }
+    const d = await r.json()
     const tally = new Map(), qn = norm(q)
     for (const r of d.results || []) {
       const a = (r.artistName || '').split(/\s*(?:,|&| feat\.? | ft\.? | x )\s*/i)[0].trim()
@@ -52,7 +58,7 @@ async function lookup(key, q) {
     }
     const best = [...tally.entries()].sort((x, y) => y[1] - x[1])[0]
     if (best && best[1] >= 2) artist = best[0]
-  } catch { return null }   // hors ligne : on réessaiera plus tard
+  } catch { pauseUntil = Date.now() + 90000; return null }   // refus sans en-tête CORS, ou hors ligne : pause, on réessaiera
   const c = cache(); c[key] = artist; lsSet(CACHE, c)
   return artist
 }

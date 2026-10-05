@@ -4,7 +4,7 @@
 import { PublicFolder } from './partoche/pcloud.js'
 import { SCORES, MINE, NOTES } from './cloud.js'
 import { lsSet, lsGet } from './partoche/store.js'
-import { fromFileName, cachedArtist, guessArtist } from './artist.js'
+import { fromFileName, cachedArtist, guessArtist, searchPaused } from './artist.js'
 
 export const STATUS = {
   envie: { icon: '💡', label: 'Envie de le jouer' },
@@ -187,6 +187,7 @@ export class Library {
       let changed = false
       for (const p of this.pieces()) {
         if (p.artist) continue
+        if (searchPaused()) break   // trop de recherches : on reprendra à la prochaine actualisation
         const a = await guessArtist(p.title)
         if (!a) continue
         for (const v of p.versions) if (v.mine) { const i = this.index.scores[v.name] = this.index.scores[v.name] || {}; if (!i.artist) { i.artist = a; i.artistGuessed = true; i.title = i.title || v.title; changed = true } }

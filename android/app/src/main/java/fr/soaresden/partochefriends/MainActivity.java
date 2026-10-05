@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.webkit.CookieManager;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -20,7 +23,8 @@ import android.webkit.WebViewClient;
  */
 public class MainActivity extends Activity {
     static final String HOME = "https://soaresden.github.io/Partoche-and-Friends/";
-    private static final int PICK_FILES = 1;
+    private static final int PICK_FILES = 1, CAMERA_REQ = 2;
+    private PermissionRequest camRequest;   // la page demande la caméra (scanner un QR code)
     private WebView web;
     private ValueCallback<Uri[]> pending;
 
@@ -48,6 +52,16 @@ public class MainActivity extends Activity {
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
+            // 📷 Scanner un QR code : la page demande la caméra -> on demande la permission à Android
+            @Override public void onPermissionRequest(PermissionRequest r) {
+                runOnUiThread(() -> {
+                    boolean video = false;
+                    for (String res : r.getResources()) if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)) video = true;
+                    if (!video) { r.deny(); return; }
+                    if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) r.grant(new String[]{ PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+                    else { camRequest = r; requestPermissions(new String[]{ Manifest.permission.CAMERA }, CAMERA_REQ); }
+                });
+            }
             // « ＋ Partition » : choisir des .mscz sur la tablette
             @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
                 if (pending != null) pending.onReceiveValue(null);
@@ -88,6 +102,13 @@ public class MainActivity extends Activity {
         }
         pending.onReceiveValue(out);
         pending = null;
+    }
+
+    @Override public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        if (req != CAMERA_REQ || camRequest == null) return;
+        if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) camRequest.grant(new String[]{ PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+        else camRequest.deny();
+        camRequest = null;
     }
 
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }

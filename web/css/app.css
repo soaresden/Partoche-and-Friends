@@ -491,3 +491,13 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 @keyframes sp-flap { 0%, 22%, 48%, 100% { transform: rotate(0); } 30% { transform: rotate(-40deg); } 38% { transform: rotate(25deg); } }
 @keyframes sp-hop { 0%, 24%, 44%, 100% { transform: translate(300px, 84px); } 32% { transform: translate(300px, 76px) rotate(-4deg); } }
 @media (prefers-reduced-motion: reduce) { .sproad * { animation: none !important; } .sp-car { display: none; } }
+
+/* lien-bouton (📖 tuto) */
+.iconbtn { display: inline-grid; place-items: center; text-decoration: none; background: var(--bg3); border: 1px solid #3a3f4a; border-radius: 8px; padding: 7px 12px; color: var(--fg); }
+#btnScan2 { margin-top: 6px; width: 100%; }
+/* scanner de QR code */
+.scanner { position: fixed; inset: 0; z-index: 300; background: #000; display: grid; place-items: center; }
+.scanner video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scan-frame { position: relative; width: min(70vw, 300px); aspect-ratio: 1; border: 4px solid #3fd17a; border-radius: 22px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
+.scan-help { position: absolute; top: 18px; left: 16px; right: 16px; text-align: center; color: #fff; font-weight: 600; text-shadow: 0 2px 6px #000; margin: 0; }
+.scan-close { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; border: 1px solid #fff6; font-size: 16px; }
