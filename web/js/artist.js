@@ -12,7 +12,12 @@ const CACHE = 'maf:artists'
 export function fromFileName(name) {
   const base = String(name || '').replace(/\.mscz$/i, '').replace(/_/g, ' ').trim()
   const m = base.match(/^(.{2,40}?)\s+[-–—]\s+(.{2,})$/)
-  return m ? { artist: m[1].trim(), title: m[2].trim() } : null
+  if (!m) return null
+  // « Artiste - Titre » seulement si la 1re partie ressemble à un nom : court, sans virgule ni chiffres
+  // (« Poupée de cire, poupée de son - Eurovision 1965 » n'est PAS « artiste - titre »)
+  const a = m[1].trim()
+  if (/[,;:!?()\d]/.test(a) || a.split(/\s+/).length > 4) return null
+  return { artist: a, title: m[2].trim() }
 }
 
 // le morceau principal d'un titre de medley / avec sous-titre

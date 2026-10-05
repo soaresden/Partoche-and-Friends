@@ -5,6 +5,7 @@ import { PublicFolder } from './partoche/pcloud.js'
 import { SCORES, MINE, NOTES } from './cloud.js'
 import { lsSet, lsGet } from './partoche/store.js'
 import { fromFileName, cachedArtist, guessArtist, searchPaused } from './artist.js'
+import { scoreInfo } from './viewer.js'
 
 export const STATUS = {
   envie: { icon: '💡', label: 'Envie de le jouer' },
@@ -168,11 +169,18 @@ export class Library {
     const byKey = new Map()
     const all = this.scores()
     const root = s => { let x = s, n = 0; while (x.basedOn && n++ < 5) { const b = all.find(y => y.id === x.basedOn); if (!b) break; x = b } return x }
+    // même titre chez des personnes DIFFÉRENTES = même morceau (une seule ligne).
+    // Deux fichiers différents d'une même personne = deux lignes ; le même fichier en double = compté à part.
+    this.dupes = []
     for (const s of all) {
-      const k = normTitle(root(s).title) || s.id
-      if (!byKey.has(k)) byKey.set(k, { key: k, title: root(s).title, versions: [] })
-      const piece = byKey.get(k)
-      if (!piece.versions.some(v => v.hash && v.hash === s.hash && v.owner.id === s.owner.id)) piece.versions.push(s)
+      const base = normTitle(root(s).title) || s.id
+      for (let i = 0; ; i++) {
+        const k = i ? base + '#' + i : base
+        if (!byKey.has(k)) { byKey.set(k, { key: k, title: s.title, versions: [s] }); break }
+        const piece = byKey.get(k), same = piece.versions.find(v => v.owner.id === s.owner.id)
+        if (!same) { piece.versions.push(s); break }
+        if (same.hash && same.hash === s.hash) { this.dupes.push(s); break }   // exactement le même fichier
+      }
     }
     for (const p of byKey.values()) {
       p.versions.sort((a, b) => (a.basedOn ? 1 : 0) - (b.basedOn ? 1 : 0) || a.addedAt - b.addedAt)
@@ -184,6 +192,28 @@ export class Library {
     return [...byKey.values()].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
   }
   // ---- artistes : deviner ceux qui manquent (une recherche à la fois), garder les miens dans !Moi.json ----
+  // ---- le vrai titre / compositeur, lus DANS mes partitions (une fois, puis gardés dans !Moi.json) ----
+  async readMyTitles(onFound) {
+    if (this._reading) return; this._reading = true
+    try {
+      let n = 0
+      for (const s of this.scores()) {
+        if (!s.mine) continue
+        const i = this.index.scores[s.name] || {}
+        if (i.metaRead) continue
+        try {
+          const info = scoreInfo(await this.space.getBytes(SCORES + s.name), s.name)
+          this.index.scores[s.name] = { ...i, title: i.titleFixed ? i.title : (info.title || i.title || ''), composer: info.composer || i.composer || '', metaRead: true }
+          if (info.composer && !i.artist) this.index.scores[s.name].artist = info.composer
+          n++; onFound && onFound()
+          if (n % 15 === 0) await this.save()
+        } catch (e) { this.index.scores[s.name] = { ...i, metaRead: true }; console.warn('lecture du titre', s.name, e) }
+      }
+      if (n) await this.save()
+      return n
+    } finally { this._reading = false }
+  }
+
   async guessMissing(onFound) {
     if (this._guessing) return; this._guessing = true
     try {
@@ -209,7 +239,7 @@ export class Library {
   }
   async setTitle(piece, title) {
     title = title.trim(); if (!title) return
-    for (const v of piece.versions) if (v.mine) { const i = this.index.scores[v.name] = this.index.scores[v.name] || {}; i.title = title }
+    for (const v of piece.versions) if (v.mine) { const i = this.index.scores[v.name] = this.index.scores[v.name] || {}; i.title = title; i.titleFixed = true }
     await this.save()
   }
 

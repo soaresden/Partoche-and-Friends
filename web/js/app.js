@@ -350,15 +350,19 @@ async function refresh(force) {
   try { if (await lib.importPartocheTags()) relay && relay.send({ ev: 'index' }) } catch (e) { console.warn('tags Partoche', e) }
   $('#btnRefresh').classList.remove('spin')
   renderAll()
-  // artistes manquants : devinés en arrière-plan, le tableau se met à jour au fur et à mesure
+  // titres / compositeurs lus dans mes partitions, puis artistes manquants devinés : en arrière-plan
   let t = 0
-  lib.guessMissing(() => { clearTimeout(t); t = setTimeout(() => { if (!$('#stMenu')) renderList() }, 1200) })
+  const later = () => { clearTimeout(t); t = setTimeout(() => { if (!$('#stMenu')) renderList() }, 1200) }
+  lib.readMyTitles(later).then(n => { if (n) relay && relay.send({ ev: 'index' }) }).catch(e => console.warn('titres', e))
+    .then(() => lib.guessMissing(later))
     .then(() => relay && relay.send({ ev: 'index' })).catch(e => console.warn('artistes', e))
 }
 $('#btnRefresh').onclick = async () => {
   await refresh(true)
-  const mine = lib.scores().filter(s => s.mine).length, all = lib.pieces().length
-  toast(`⟳ Bibliothèque actualisée : ${all} morceau${all > 1 ? 'x' : ''} (dont ${mine} partition${mine > 1 ? 's' : ''} chez toi)`, 3500)
+  const mine = lib.scores().filter(s => s.mine).length, rows = lib.pieces().length, dup = (lib.dupes || []).filter(s => s.mine)
+  const pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '')
+  toast(`⟳ Actualisé : ${pl(rows, 'ligne')} dans le tableau · ${pl(mine, 'fichier')} chez toi` +
+    (dup.length ? ` · ${dup.length} en double (même fichier) : ${dup.slice(0, 2).map(s => s.name).join(', ')}` : ''), dup.length ? 7000 : 3500)
 }
 setInterval(() => { if (!document.hidden && !$('#main').hidden) refresh(false) }, 60000)
 
