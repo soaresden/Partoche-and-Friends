@@ -355,7 +355,11 @@ async function refresh(force) {
   lib.guessMissing(() => { clearTimeout(t); t = setTimeout(() => { if (!$('#stMenu')) renderList() }, 1200) })
     .then(() => relay && relay.send({ ev: 'index' })).catch(e => console.warn('artistes', e))
 }
-$('#btnRefresh').onclick = () => refresh(true)
+$('#btnRefresh').onclick = async () => {
+  await refresh(true)
+  const mine = lib.scores().filter(s => s.mine).length, all = lib.pieces().length
+  toast(`⟳ Bibliothèque actualisée : ${all} morceau${all > 1 ? 'x' : ''} (dont ${mine} partition${mine > 1 ? 's' : ''} chez toi)`, 3500)
+}
 setInterval(() => { if (!document.hidden && !$('#main').hidden) refresh(false) }, 60000)
 
 // ---- relais : quelqu'un est arrivé / a changé quelque chose ----

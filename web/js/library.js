@@ -43,7 +43,9 @@ class Peer {
   }
   scores() {
     const p = this.folder && this.folder.folder('MSCZ')
-    return p ? (p.contents || []).filter(m => !m.isfolder && /\.mscz$/i.test(m.name)).map(meta => ({ meta })).map(({ meta }) => ({ name: meta.name, size: meta.size, hash: String(meta.hash || ''), fileid: meta.fileid })) : []
+    if (!p) return []
+    return this.folder.files(p, m => /\.mscz$/i.test(m.name)).filter(f => !/(^|\/)files from /i.test(f.rel))
+      .map(({ meta, rel }) => ({ name: rel, size: meta.size, hash: String(meta.hash || ''), fileid: meta.fileid }))
   }
   async bytes(name) { const s = this.scores().find(x => x.name === name); if (!s) throw new Error('partition introuvable chez ' + this.card.name); return this.folder.bytes(s.fileid) }
   async notes(id) {
@@ -147,8 +149,9 @@ export class Library {
     const add = (m, list, meta) => {
       for (const f of list) {
         const info = (meta && meta[f.name]) || {}
-        const ff = fromFileName(f.name)
-        const title = info.title || (ff ? ff.title : prettyTitle(f.name))
+        const base = f.name.split('/').pop()   // partition rangée dans un sous-dossier de MSCZ/
+        const ff = fromFileName(base)
+        const title = info.title || (ff ? ff.title : prettyTitle(base))
         // artiste : corrigé à la main > dans la partition / le nom du fichier > deviné (🔮)
         const fix = (lsGet('maf:artistFix', {}) || {})[normTitle(title)]
         let artist = fix || info.artist || info.composer || (ff && ff.artist) || '', guessed = !fix && !!info.artistGuessed
@@ -156,7 +159,7 @@ export class Library {
         out.push({ id: scoreId(m.id, f.name), owner: m, name: f.name, size: f.size, hash: f.hash, title, composer: info.composer || '', artist, guessed, basedOn: info.basedOn || '', addedAt: info.addedAt || 0, mine: m.id === this.me.id })
       }
     }
-    add(this.me, this.space.list(SCORES).filter(f => /\.mscz$/i.test(f.name)), this.index.scores)
+    add(this.me, this.space.list(SCORES, true).filter(f => /\.mscz$/i.test(f.name)), this.index.scores)
     for (const k of this.index.knows) { const p = this.peers.get(k.id); if (p && p.folder) add(k, p.scores(), p.index && p.index.scores) }
     return out
   }
@@ -221,7 +224,7 @@ export class Library {
     const seen = new Set()
     for (const [rel, t] of Object.entries(tags)) {
       const st = MAP[t]; if (!st) continue
-      const id = scoreId(this.me.id, rel.split('/').pop()); seen.add(id)
+      const id = scoreId(this.me.id, rel); seen.add(id)
       const w = this.index.work[id]
       if (w && w.src !== 'partoche') continue            // choisi dans Friends : on n'y touche pas
       if (!w || w.status !== st) { this.index.work[id] = { ...(w || {}), status: st, src: 'partoche', at: Date.now() }; n++ }

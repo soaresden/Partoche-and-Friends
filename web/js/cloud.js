@@ -184,7 +184,8 @@ class PcloudSpace {
     try { return await this.viaLink(m) } catch (e) { this._why = e }
     return this.pub().bytes(m.fileid)
   }
-  list(prefix) { return Object.entries(this.index).filter(([p]) => p.startsWith(prefix) && !p.slice(prefix.length).includes('/')).map(([p, m]) => ({ path: p, name: p.slice(prefix.length), size: m.size, hash: String(m.hash || ''), modified: m.modified })) }
+  // deep = true : aussi les sous-dossiers (ex. MSCZ/Violon/x.mscz -> nom « Violon/x.mscz »), sauf les dépôts « Files from … »
+  list(prefix, deep) { return Object.entries(this.index).filter(([p]) => p.startsWith(prefix) && (deep ? !/(^|\/)files from /i.test(p.slice(prefix.length)) : !p.slice(prefix.length).includes('/'))).map(([p, m]) => ({ path: p, name: p.slice(prefix.length), size: m.size, hash: String(m.hash || ''), modified: m.modified })) }
   async remove(path) { const m = this.index[path]; if (!m) return; await this.call('deletefile', { fileid: m.fileid }); delete this.index[path] }
   // le lien partagé que les amis utilisent pour me lire (celui du dossier choisi, mot de passe tapé à la config)
   async shareLink() { return { link: this.root.link, pw: this.root.pw || '' } }
@@ -216,7 +217,7 @@ class DemoSpace {
   async getBytes(path) { const v = await idbGet('maf:demo:' + path); return v ? v.bytes : null }
   async getText(path) { const b = await this.getBytes(path); return b ? new TextDecoder().decode(b) : null }
   async getJson(path) { const t = await this.getText(path); return t ? JSON.parse(t) : null }
-  list(prefix) { return PcloudSpace.prototype.list.call(this, prefix) }
+  list(prefix, deep) { return PcloudSpace.prototype.list.call(this, prefix, deep) }
   async remove(path) { await idbSet('maf:demo:' + path, undefined); delete this.index[path] }
   async shareLink() { return { link: '', pw: '' } }
   async account() { return { email: 'démo (ce navigateur)', premium: false, folder: '' } }
