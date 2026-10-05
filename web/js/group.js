@@ -37,8 +37,8 @@ async function pinKey(pin, salt) {
 }
 export async function makeDeviceLink(payload) {
   const pin = String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000)
-  const salt = crypto.getRandomValues(new Uint8Array(12)), iv = crypto.getRandomValues(new Uint8Array(12))
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await pinKey(pin, salt), enc.encode(JSON.stringify({ ...payload, exp: Date.now() + 15 * 60000 }))))
+  const salt = crypto.getRandomValues(new Uint8Array(8)), iv = crypto.getRandomValues(new Uint8Array(12))
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await pinKey(pin, salt), enc.encode(JSON.stringify({ ...payload, exp: Math.round((Date.now() + 15 * 60000) / 1000) }))))
   return { url: location.origin + location.pathname + '#appareil=' + [salt, iv, ct].map(b64u).join('.'), pin }
 }
 export function readDeviceLink(text) { const m = String(text || '').match(/appareil=([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/); return m ? m[1] : null }
@@ -46,7 +46,7 @@ export async function openDeviceLink(s, pin) {
   try {
     const [salt, iv, ct] = s.split('.').map(unb64u)
     const o = JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, await pinKey(pin, salt), ct)))
-    return o.exp > Date.now() ? o : null
+    return (o.exp < 1e11 ? o.exp * 1000 : o.exp) > Date.now() ? o : null
   } catch { return null }
 }
 

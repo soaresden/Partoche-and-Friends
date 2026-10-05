@@ -281,7 +281,10 @@ $('#btnDevOk').onclick = async () => {
   if (pin.length !== 6) return setupMsg('Le code fait 6 chiffres.')
   const d = await openDeviceLink(pendingDevice, pin)
   if (!d) return setupMsg('Code incorrect (ou QR code expiré : régénère-le sur l’autre appareil).')
-  adoptPcloud(d.pcloud); setClientId(d.c)
+  // format compact (t, h, f, n, k, p) ou ancien format { pcloud }
+  const pc = d.pcloud || { token: d.t, api: d.h === 'e' ? 'https://eapi.pcloud.com' : 'https://api.pcloud.com',
+    root: d.f ? { folderid: d.f, name: d.n, link: `https://${d.h}.pcloud.link/publink/show?code=${d.k}`, pw: d.p || '' } : null }
+  adoptPcloud(pc); setClientId(d.c)
   if (d.index) lsSet('maf:index', d.index)
   lsSet('maf:space', 'pcloud')
   for (const k of ['maf:invite', 'maf:intent']) localStorage.removeItem(k)
@@ -636,7 +639,8 @@ async function download(v) {
 // =====================================================================
 function qr(el, text) {
   const q = window.qrcode(0, 'L'); q.addData(text); q.make()
-  el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true })
+  // marge blanche de 4 modules autour (obligatoire pour les lecteurs de QR code)
+  el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 16, scalable: true })
 }
 $('#btnInvite').onclick = () => {
   const demo = space.kind === 'demo'
@@ -651,7 +655,10 @@ $('#btnDevice').onclick = async () => {
   // juste la connexion pCloud (+ dossier) et le Client ID : le profil, la tablette le relit dans pCloud.
   // (tout mettre dans le QR code le rendait trop gros pour être généré)
   try {
-    const { url, pin } = await makeDeviceLink({ pcloud: currentPcloud(), c: clientId() })
+    // contenu compact (moins de cases dans le QR = lisible de plus loin)
+    const cp = currentPcloud(), r = cp.root || {}
+    const code = (String(r.link || '').match(/code=([A-Za-z0-9]+)/) || [])[1] || ''
+    const { url, pin } = await makeDeviceLink({ t: cp.token, h: /eapi/.test(cp.api) ? 'e' : 'u', f: r.folderid, n: r.name, k: code, p: r.pw || '', c: clientId() })
     qr($('#deviceQr'), url); $('#devicePin').textContent = pin; $('#deviceOut').value = url
     $('#meDlg').close(); $('#deviceDlg').showModal()
   } catch (e) { console.error(e); toast('QR code impossible : ' + (e.message || e), 6000) }

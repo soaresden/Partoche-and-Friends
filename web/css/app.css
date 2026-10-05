@@ -163,8 +163,9 @@ dialog h3 { margin: 16px 0 6px; font-size: 14px; color: var(--muted); text-trans
 textarea { resize: vertical; font-size: 13px; }
 
 .qr-wrap { display: grid; place-items: center; margin: 10px 0; }
-.qr { background: #fff; padding: 10px; border-radius: 10px; line-height: 0; }
-.qr img, .qr svg { width: min(240px, 60vw); height: auto; display: block; }
+.qr { background: #fff; padding: 4px; border-radius: 10px; line-height: 0; }
+.qr img, .qr svg { width: min(340px, 78vw); height: auto; display: block; }
+.qr svg rect[fill='white'], .qr svg rect[fill='#ffffff'] { fill: #fff; }
 .pin { font-size: 28px; letter-spacing: .3em; text-align: center; }
 .pin-show { text-align: center; font-size: 18px; }
 .pin-show b { font-size: 30px; letter-spacing: .25em; font-family: ui-monospace, monospace; }
@@ -500,7 +501,9 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 .scanner video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .scan-frame { position: relative; width: min(70vw, 300px); aspect-ratio: 1; border: 4px solid #3fd17a; border-radius: 22px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
 .scan-help { position: absolute; top: 18px; left: 16px; right: 16px; text-align: center; color: #fff; font-weight: 600; text-shadow: 0 2px 6px #000; margin: 0; }
-.scan-close { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; border: 1px solid #fff6; font-size: 16px; }
+.scan-actions { position: absolute; bottom: 26px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.scan-actions button { padding: 10px 20px; border-radius: 999px; background: rgba(0,0,0,.65); color: #fff; border: 1px solid #fff6; font-size: 16px; }
+.scan-help small { font-weight: 400; opacity: .85; }
 
 /* tuto de Paf en fenêtre flottante : déplaçable (barre de titre) et redimensionnable (coin) */
 .tutowin { position: fixed; z-index: 150; right: 20px; bottom: 20px; width: 400px; height: min(620px, calc(100vh - 40px)); min-width: 300px; min-height: 260px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px);

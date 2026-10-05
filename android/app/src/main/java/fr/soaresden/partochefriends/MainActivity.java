@@ -31,7 +31,22 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         web = new WebView(this);
-        setContentView(web);
+        // Android 15 dessine les applis SOUS la barre de notifications et la barre de navigation :
+        // on met la WebView dans un cadre qui réserve leur place (et celle du clavier).
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.setBackgroundColor(0xff16181d);
+        frame.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        frame.setOnApplyWindowInsetsListener((v, in) -> {
+            int l, t, r, b;
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets i = in.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout() | android.view.WindowInsets.Type.ime());
+                l = i.left; t = i.top; r = i.right; b = i.bottom;
+            } else { l = in.getSystemWindowInsetLeft(); t = in.getSystemWindowInsetTop(); r = in.getSystemWindowInsetRight(); b = in.getSystemWindowInsetBottom(); }
+            v.setPadding(l, t, r, b);
+            return in;
+        });
+        setContentView(frame);
+        frame.requestApplyInsets();
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
