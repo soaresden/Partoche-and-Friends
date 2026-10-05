@@ -26,11 +26,10 @@ C'est la suite logique de **[Partoche](https://github.com/soaresden/Partoche)** 
 
 ## Ce qu'on peut faire
 
-- 📚 **Bibliothèque commune** : toutes les partitions de tout le monde, regroupées par morceau, recherche, filtre par membre.
+- 📚 **Bibliothèque en tableau** : une ligne par morceau, une colonne par personne (statut, partie, qui a la partition), recherche, filtre par membre.
 - ＋ **Ajouter ses partitions** (`.mscz`) : elles vont dans *son* pCloud, titre et compositeur lus dans le fichier.
-- 🔀 **Versions** : « Ajouter ma version » d'un morceau (arrangement, correction, autre tonalité) ; elle reste chez soi et apparaît sous le même morceau.
 - 🛠️ **Chantiers** : sur chaque morceau, chacun indique 💡 *envie*, 🛠️ *je bosse dessus* ou ✅ *prêt*, et **sa partie** (« Violon 1 », « main gauche »…). L'onglet *Chantiers* montre ce qui bouge.
-- 💬 **Discussion** par morceau.
+- 💬 **Chat dans la partition**, à droite, un fil par morceau.
 - ✏️ **Annotations partagées** : chacun annote dans sa couleur (rendu MuseScore fidèle, stylo, surligneur, texte, gomme) ; on voit **un calque par ami**, avec sa bulle, à afficher / masquer. Mises à jour en direct quand l'autre enregistre.
 - ▶ **Lecture audio** de la partition (sons FluidR3).
 - 🟢 **Présence** : qui est en ligne, et « B est sur ce morceau ».

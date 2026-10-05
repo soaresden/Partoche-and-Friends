@@ -125,9 +125,6 @@
     <label>Ma partie <input id="pdPart" list="pdParts" placeholder="ex. Violon 1"></label>
     <datalist id="pdParts"></datalist>
   </div>
-  <h3>Discussion</h3>
-  <div id="pdComments" class="comments"></div>
-  <div class="row"><input id="pdComment" placeholder="Un mot pour les autres…"><button id="pdSend" class="primary">Envoyer</button></div>
 </dialog>
 
 <!-- ================= Membres / invitation / profil ================= -->
@@ -177,9 +174,17 @@
       <button data-tool="pen" class="on">🖊️</button><button data-tool="hl">🖍️</button><button data-tool="text">T</button><button data-tool="eraser">🧽</button><button id="vUndo">↶</button>
     </span>
     <span id="vSaved" class="muted"></span>
+    <button id="vChatBtn" title="Discussion">💬 <span id="vChatN"></span></button>
   </header>
   <div id="vLayers" class="layers"></div>
-  <div class="scroller"><div class="pages"></div></div>
+  <div class="vbody">
+    <div class="scroller"><div class="pages"></div></div>
+    <aside id="vChat" class="chat">
+      <div class="chat-head">💬 Discussion sur ce morceau</div>
+      <div id="chatList" class="comments"></div>
+      <form id="chatForm" class="chat-in"><input id="chatIn" placeholder="Un mot pour les autres…" autocomplete="off"><button class="primary">➤</button></form>
+    </aside>
+  </div>
   <div id="vStatus" class="vstatus" hidden></div>
 </section>
 

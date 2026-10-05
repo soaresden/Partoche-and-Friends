@@ -270,6 +270,7 @@ async function onRelay(o, replay) {
   if (fresh) { await lib.save(); if (!replay) toast(`${o.from.emoji || '🎵'} ${o.from.name} a rejoint le collectif`) }
   if (fresh || o.ev === 'index') { const p = lib.peer(o.from.id); if (p) await p.load(true); renderAll(); if ($('#pieceDlg').open) renderPiece() }
   if (o.ev === 'ink' && current && o.score === current.id) loadLayers(o.from.id)
+  if (o.ev === 'index' && current) renderChat()
   if (!replay && o.ev === 'hello' && current) paintLayers()
   paintDots()
 }
@@ -291,6 +292,7 @@ $('#filterMember').onchange = () => renderList()
 
 function renderList() {
   const L = $('#list')
+  L.classList.remove('as-table')
   if (tab === 'members') return renderMembers()
   const q = normTitle($('#search').value), who = $('#filterMember').value
   let pieces = lib.pieces()
@@ -301,17 +303,40 @@ function renderList() {
     L.innerHTML = `<div class="empty">${tab === 'work' ? 'Personne ne bosse encore sur un morceau.<br>Ouvre une partition et indique « Je bosse dessus ».' : 'Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.'}</div>`
     return
   }
-  L.innerHTML = pieces.map((p, i) => {
-    const owners = [...new Map(p.versions.map(v => [v.owner.id, v.owner])).values()]
-    const comp = p.versions.find(v => v.composer)
-    return `<article class="card" data-i="${i}">
-      <h3>${esc(p.title)}</h3>
-      <div class="meta">${comp ? esc(comp.composer) + ' · ' : ''}${p.versions.length > 1 ? p.versions.length + ' versions · ' : ''}chez ${owners.map(o => avatar(o)).join('')}</div>
-      ${p.work.length ? `<div class="meta">${p.work.map(w => chip(w.member, (STATUS[w.status] || {}).icon ? STATUS[w.status].icon + (w.part ? ' ' + w.part : '') : w.part)).join(' ')}</div>` : ''}
-      ${p.comments.length ? `<div class="meta">💬 ${p.comments.length} · ${esc(p.comments[p.comments.length - 1].member.name)} : « ${esc(p.comments[p.comments.length - 1].text.slice(0, 60))} »</div>` : ''}
-    </article>`
-  }).join('')
-  for (const c of $$('#list .card')) c.onclick = () => openPiece(pieces[+c.dataset.i])
+  // tableau : une ligne par morceau, une colonne par personne (moi en premier)
+  const mem = lib.members()
+  const STEPS_ST = ['', 'envie', 'encours', 'pret']
+  const cell = (p, m) => {
+    const vs = p.versions.filter(v => v.owner.id === m.id)
+    const w = p.work.find(x => x.member.id === m.id) || {}
+    const st = STATUS[w.status]
+    const has = vs.length ? '<span class="has" title="a la partition dans son dossier">📄</span>' : ''
+    const inner = (st ? `<span class="st" title="${esc(st.label)}">${st.icon}</span>` : '') + has + (w.part ? `<small>${esc(w.part)}</small>` : '')
+    return inner || '<span class="none">·</span>'
+  }
+  L.classList.add('as-table')
+  L.innerHTML = `<div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th class="c-title">Morceau</th>${mem.map(m => `<th class="c-mem" style="--c:${esc(m.color || '#888')}">${avatar(m)}<span>${esc(m.id === lib.me.id ? 'Moi' : m.name)}</span></th>`).join('')}<th class="c-com">💬</th></tr></thead>
+    <tbody>${pieces.map((p, i) => {
+      const comp = p.versions.find(v => v.composer)
+      const last = p.comments[p.comments.length - 1]
+      return `<tr data-i="${i}">
+        <th class="c-title"><b>${esc(p.title)}</b>${comp ? `<small>${esc(comp.composer)}</small>` : ''}</th>
+        ${mem.map(m => `<td class="c-mem${m.id === lib.me.id ? ' mine' : ''}" style="--c:${esc(m.color || '#888')}"${m.id === lib.me.id ? ' title="Clique pour changer ton statut"' : ''}>${cell(p, m)}</td>`).join('')}
+        <td class="c-com" title="${last ? esc(last.member.name + ' : ' + last.text) : ''}">${p.comments.length || ''}</td>
+      </tr>`
+    }).join('')}</tbody></table></div>
+    <p class="legend">💡 envie · 🛠️ je bosse dessus · ✅ prêt · 📄 a la partition · clique sur ta colonne pour changer ton statut, sur le reste pour ouvrir la fiche</p>`
+  for (const tr of $$('#list tbody tr')) tr.onclick = async e => {
+    const p = pieces[+tr.dataset.i]
+    if (e.target.closest('td.mine')) {   // ma colonne : statut suivant, sans ouvrir la fiche
+      const w = p.work.find(x => x.member.id === lib.me.id) || {}
+      const next = STEPS_ST[(STEPS_ST.indexOf(w.status || '') + 1) % STEPS_ST.length]
+      await lib.setWork(w.score || p.versions[0].id, { status: next, part: w.part || '' })
+      relay && relay.send({ ev: 'index' }); renderList(); return
+    }
+    openPiece(p)
+  }
 }
 
 function renderMembers() {
@@ -326,15 +351,14 @@ function renderMembers() {
 }
 
 // ---- ajouter des partitions ----
-let addBasedOn = ''
-$('#btnAdd').onclick = () => { addBasedOn = ''; $('#fileIn').click() }
+$('#btnAdd').onclick = () => $('#fileIn').click()
 $('#fileIn').onchange = async () => {
   const files = [...$('#fileIn').files]; $('#fileIn').value = ''
   for (const f of files) {
     toast('Envoi de « ' + f.name + ' » dans ton ' + (space.kind === 'demo' ? 'espace démo' : 'pCloud') + '…', 20000)
     try {
       const info = scoreInfo(new Uint8Array(await f.arrayBuffer()), f.name)
-      await lib.addScore(f, { ...info, basedOn: addBasedOn })
+      await lib.addScore(f, info)
     } catch (e) { console.error(e); toast('Échec : ' + (e.message || e), 6000); return }
   }
   toast(files.length > 1 ? files.length + ' partitions ajoutées' : 'Partition ajoutée')
@@ -354,9 +378,9 @@ function renderPiece() {
   piece = lib.pieces().find(p => p.key === piece.key) || piece
   $('#pdTitle').textContent = piece.title
   $('#pdVersions').innerHTML = piece.versions.map((v, i) => `<div class="version">${avatar(v.owner)}
-      <div class="grow"><b>${esc(v.basedOn ? 'Version de ' + v.owner.name : 'Original · ' + v.owner.name)}</b><div class="muted">${esc(v.name)}${v.size ? ' · ' + Math.round(v.size / 1024) + ' Ko' : ''}</div></div>
+      <div class="grow"><b>Chez ${esc(v.owner.name)}</b><div class="muted">${esc(v.name)}${v.size ? ' · ' + Math.round(v.size / 1024) + ' Ko' : ''}</div></div>
       <button data-open="${i}" class="primary">Ouvrir</button><button data-dl="${i}" title="Télécharger">⬇</button>${v.mine ? `<button data-rm="${i}" title="Retirer">🗑</button>` : ''}</div>`).join('') +
-    `<p><button id="pdAddVersion">＋ Ajouter ma version (arrangement, correction…)</button></p>`
+''
   for (const b of $$('#pdVersions [data-open]')) b.onclick = () => { $('#pieceDlg').close(); openViewer(piece.versions[+b.dataset.open]) }
   for (const b of $$('#pdVersions [data-dl]')) b.onclick = () => download(piece.versions[+b.dataset.dl])
   for (const b of $$('#pdVersions [data-rm]')) b.onclick = async () => {
@@ -365,7 +389,6 @@ function renderPiece() {
     await lib.removeScore(v); relay && relay.send({ ev: 'index' }); renderAll()
     if (piece.versions.length > 1) renderPiece(); else $('#pieceDlg').close()
   }
-  $('#pdAddVersion').onclick = () => { addBasedOn = rootOf(piece).id; $('#fileIn').click() }
 
   const w = piece.work
   $('#pdWork').innerHTML = w.length ? w.map(x => `<div>${chip(x.member)} ${x.status ? STATUS[x.status].icon + ' ' + STATUS[x.status].label : ''}${x.part ? ' · <b>' + esc(x.part) + '</b>' : ''} <span class="muted">${ago(x.at || 0)}</span></div>`).join('') : '<span class="muted">Personne pour l’instant.</span>'
@@ -374,9 +397,6 @@ function renderPiece() {
   $('#pdParts').innerHTML = (piece.parts || []).map(n => `<option value="${esc(n)}">`).join('')
   if (!piece.parts) lib.bytes(rootOf(piece)).then(b => { piece.parts = scoreInfo(b, rootOf(piece).name).parts; $('#pdParts').innerHTML = piece.parts.map(n => `<option value="${esc(n)}">`).join('') }).catch(() => { })
 
-  const c = piece.comments
-  $('#pdComments').innerHTML = c.length ? c.map(x => `<div class="comment">${avatar(x.member)}<div class="bubble"><small>${esc(x.member.name)} · ${ago(x.at)}</small>${esc(x.text)}</div></div>`).join('') : '<span class="muted">Pas encore de message.</span>'
-  $('#pdComments').scrollTop = 1e6
 }
 // mon statut / ma partie sont publiés sur la version d'origine (le fil du morceau)
 async function saveMyWork() {
@@ -386,13 +406,6 @@ async function saveMyWork() {
 }
 $('#pdStatus').onchange = saveMyWork
 $('#pdPart').onchange = saveMyWork
-$('#pdSend').onclick = async () => {
-  const t = $('#pdComment').value.trim(); if (!t) return
-  $('#pdComment').value = ''
-  await lib.comment(rootOf(piece).id, t)
-  relay && relay.send({ ev: 'index' }); renderPiece(); renderList()
-}
-$('#pdComment').onkeydown = e => { if (e.key === 'Enter') $('#pdSend').click() }
 
 async function download(v) {
   try {
@@ -458,7 +471,7 @@ async function openViewer(s) {
   $('#vSaved').textContent = ''; $('#vPlay').textContent = '▶'
   setPen(false)
   if (relay) { relay.here = s.id; relay.send({ ev: 'hello' }) }
-  layers = []; paintLayers()
+  layers = []; paintLayers(); renderChat(true)
   try {
     const [bytes, mine] = await Promise.all([lib.bytes(s), lib.myNotes(s.id)])
     await viewer.open(bytes, s.name, (mine && mine.pages) || [], [])
@@ -479,6 +492,30 @@ function paintLayers() {
   $('#vLayers').hidden = !layers.length && !here.length
   for (const c of $$('#vLayers [data-l]')) c.onclick = () => { const l = layers[+c.dataset.l]; l.visible = !l.visible; viewer.setLayers(layers); paintLayers() }
 }
+// ---- discussion du morceau, à droite de la partition ----
+// (chacun publie ses messages dans son !Moi.json ; le fil = l'union de tout le monde)
+const pieceOfCurrent = () => current && lib.pieces().find(p => p.versions.some(v => v.id === current.id))
+function renderChat(scroll) {
+  const p = pieceOfCurrent(); if (!p) return
+  const L = $('#chatList'), atEnd = L.scrollHeight - L.scrollTop - L.clientHeight < 40
+  const c = p.comments
+  L.innerHTML = c.length ? c.map(x => `<div class="comment${x.member.id === lib.me.id ? ' me' : ''}">${avatar(x.member)}<div class="bubble" style="--c:${esc(x.member.color || '#888')}"><small>${esc(x.member.name)} · ${ago(x.at)}</small>${esc(x.text)}</div></div>`).join('')
+    : '<p class="muted">Pas encore de message sur ce morceau. Lance la discussion !</p>'
+  $('#vChatN').textContent = c.length || ''
+  if (scroll || atEnd) L.scrollTop = 1e6
+}
+$('#chatForm').onsubmit = async e => {
+  e.preventDefault()
+  const t = $('#chatIn').value.trim(), p = pieceOfCurrent(); if (!t || !p) return
+  $('#chatIn').value = ''
+  await lib.comment(p.versions[0].id, t)
+  relay && relay.send({ ev: 'index', score: current.id })
+  renderChat(true)
+}
+// sur petit écran le chat se replie ; le bouton 💬 l'ouvre / le ferme
+$('#vChatBtn').onclick = () => $('#viewer').classList.toggle('chat-open')
+setInterval(() => { if (current && !document.hidden) renderChat() }, 30000)   // « il y a 2 min » à jour
+
 function setPen(on) {
   viewer.ink.setEnabled(on); viewer.ink.color = lib.me.color || '#138a4a'
   $('#vTools').hidden = !on; $('#vPen').classList.toggle('on', on)
