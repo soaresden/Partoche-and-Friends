@@ -647,9 +647,13 @@ $('#btnInvite').onclick = () => {
 }
 $('#btnDevice').onclick = async () => {
   if (space.kind !== 'pcloud') return toast('En mode démo, il n’y a rien à transférer.')
-  const { url, pin } = await makeDeviceLink({ pcloud: currentPcloud(), c: clientId(), index: lib.index })
-  qr($('#deviceQr'), url); $('#devicePin').textContent = pin; $('#deviceOut').value = url
-  $('#meDlg').close(); $('#deviceDlg').showModal()
+  // juste la connexion pCloud (+ dossier) et le Client ID : le profil, la tablette le relit dans pCloud.
+  // (tout mettre dans le QR code le rendait trop gros pour être généré)
+  try {
+    const { url, pin } = await makeDeviceLink({ pcloud: currentPcloud(), c: clientId() })
+    qr($('#deviceQr'), url); $('#devicePin').textContent = pin; $('#deviceOut').value = url
+    $('#meDlg').close(); $('#deviceDlg').showModal()
+  } catch (e) { console.error(e); toast('QR code impossible : ' + (e.message || e), 6000) }
 }
 $('#btnCopyInvite').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteOut').value); toast('Lien copié') } catch { $('#inviteOut').select() } }
 $('#btnShareInvite').onclick = () => navigator.share ? navigator.share({ title: 'Partoche and Friends', text: `Rejoins « ${lib.index.group.name} » sur Partoche and Friends`, url: $('#inviteOut').value }).catch(() => { }) : $('#btnCopyInvite').click()
