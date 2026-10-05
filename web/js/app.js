@@ -382,7 +382,37 @@ function paintDots() {
   sel.innerHTML = '<option value="">Tout le monde</option>' + lib.members().map(m => `<option value="${esc(m.id)}">${esc(m.emoji || '')} ${esc(m.name)}</option>`).join('')
   sel.value = v
 }
-function renderAll() { paintDots(); renderList() }
+function renderAll() { detectNew(); paintDots(); renderList() }
+
+// ---- nouvelles partitions : petite fenêtre « 🎁 trouvée », tag NEW qui clignote jusqu'à l'ouverture ----
+let newIds = new Set(lsGet('maf:new', []))
+function detectNew() {
+  if (!lib) return
+  const scores = lib.scores(), ids = scores.map(s => s.id)
+  const seen = lsGet('maf:seen', null)
+  if (!seen) { lsSet('maf:seen', ids); return }   // 1re fois : tout est connu, rien de « nouveau »
+  const known = new Set(seen), fresh = scores.filter(s => !known.has(s.id))
+  if (!fresh.length) return
+  for (const s of fresh) newIds.add(s.id)
+  lsSet('maf:new', [...newIds]); lsSet('maf:seen', [...known, ...fresh.map(s => s.id)])
+  newPop(fresh)
+}
+function newPop(list) {
+  const old = $('#newPop'); if (old) old.remove()
+  const d = document.createElement('div'); d.id = 'newPop'; d.className = 'newpop'
+  const shown = list.slice(0, 3)
+  d.innerHTML = `<b>🎁 ${list.length > 1 ? list.length + ' nouvelles partitions trouvées' : 'Nouvelle partition trouvée'}</b>` +
+    shown.map(s => `<div>${esc(s.title)} <span class="muted">· ${s.mine ? 'chez toi' : 'chez ' + esc(s.owner.name)}</span></div>`).join('') +
+    (list.length > 3 ? `<div class="muted">… et ${list.length - 3} autre${list.length - 3 > 1 ? 's' : ''}</div>` : '')
+  d.onclick = () => d.remove()
+  document.body.appendChild(d)
+  setTimeout(() => d.classList.add('out'), 6000); setTimeout(() => d.remove(), 6600)
+}
+function markSeen(p) {
+  let ch = false
+  for (const v of p.versions) if (newIds.delete(v.id)) ch = true
+  if (ch) { lsSet('maf:new', [...newIds]); renderList() }
+}
 
 for (const b of $$('.tabs [data-tab]')) b.onclick = () => { tab = b.dataset.tab; $$('.tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b)); renderList() }
 $('#search').oninput = () => renderList()
@@ -459,7 +489,7 @@ function renderList() {
       const last = p.comments[p.comments.length - 1], v0 = p.versions[0]
       return `<tr data-i="${i}">
         <td class="c-pv"><button class="pvb${pv === v0.id ? ' playing' : ''}" data-pv="${esc(v0.id)}" title="Aperçu 30 s">${pv === v0.id ? '⏸' : '▶'}</button></td>
-        <th class="c-title"><b>${esc(p.title)}</b></th>
+        <th class="c-title"><b>${esc(p.title)}</b>${p.versions.some(v => newIds.has(v.id)) ? ' <span class="newtag">NEW</span>' : ''}</th>
         <td class="c-art">${p.artist ? `<span class="art" data-art="${esc(p.artist)}" title="${p.guessed ? 'Deviné d’après le titre : ouvre la fiche pour corriger' : ''}">${esc(p.artist)}${p.guessed ? ' <i>🔮</i>' : ''}</span>` : '<span class="none">?</span>'}</td>
         ${mem.map(m => `<td class="c-mem${m.id === lib.me.id ? ' mine' : ''}" style="--c:${esc(m.color || '#888')}"${m.id === lib.me.id ? ' title="Clique pour choisir ton statut"' : ''}>${cell(p, m)}</td>`).join('')}
         <td class="c-cnt">${p.cnt || ''}</td>
@@ -573,7 +603,7 @@ $('#fileIn').onchange = async () => {
 // =====================================================================
 let piece = null
 const rootOf = p => p.versions[0]
-function openPiece(p) { piece = p; renderPiece(); if (!$('#pieceDlg').open) $('#pieceDlg').showModal() }
+function openPiece(p) { piece = p; markSeen(p); renderPiece(); if (!$('#pieceDlg').open) $('#pieceDlg').showModal() }
 $('#pdStatus').innerHTML = '<option value="">—</option>' + Object.entries(STATUS).map(([k, s]) => `<option value="${k}">${s.icon} ${s.label}</option>`).join('')
 
 function renderPiece() {

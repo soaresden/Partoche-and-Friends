@@ -528,3 +528,15 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 .filterbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 18%, var(--bg2)); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); font-size: 14px; }
 .filterbar button { margin-left: auto; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
+/* nouvelles partitions */
+.newtag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .06em; color: #fff; background: #ff4fa3; vertical-align: middle; animation: newblink 1.1s ease-in-out infinite; }
+@keyframes newblink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,79,163,.6); } 50% { opacity: .55; box-shadow: 0 0 0 5px rgba(255,79,163,0); } }
+.newpop { position: fixed; z-index: 90; top: 70px; left: 50%; transform: translateX(-50%); min-width: min(320px, 90vw); max-width: 92vw; padding: 12px 16px; border-radius: 14px;
+  background: var(--bg2); border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); border-left: 5px solid #ff4fa3; box-shadow: 0 14px 40px rgba(0,0,0,.5);
+  display: grid; gap: 3px; cursor: pointer; animation: newin .35s cubic-bezier(.2,.9,.3,1.3); transition: opacity .5s, transform .5s; }
+.newpop.out { opacity: 0; transform: translate(-50%, -12px); }
+@keyframes newin { from { opacity: 0; transform: translate(-50%, -16px) scale(.95); } to { opacity: 1; transform: translateX(-50%); } }
+#btnRefresh .lbl { font-size: 14px; }
+@media (max-width: 900px) { #btnRefresh .lbl { display: none; } }
+@media (prefers-reduced-motion: reduce) { .newtag { animation: none; } }
