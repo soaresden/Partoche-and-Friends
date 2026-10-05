@@ -1,6 +1,7 @@
 <p align="center"><img src="web/img/logo.svg" width="110" alt=""></p>
 
 <h1 align="center">Partoche and Friends</h1>
+<p align="center"><a href="https://soaresden.github.io/Partoche-and-Friends/"><b>▶ Ouvrir l'appli</b></a> · <a href="https://soaresden.github.io/Partoche-and-Friends/tuto.html"><b>📖 Le tuto</b></a></p>
 <p align="center"><b>Une maxi-bibliothèque de partitions MuseScore entre potes.<br>Chacun garde les siennes dans son pCloud, et on bosse les mêmes morceaux ensemble.</b></p>
 
 ---
@@ -54,7 +55,7 @@ Pas à pas (création de l'appli pCloud, configuration de chacun, tablette) : **
 
 ## Mise en place
 
-**Une seule fois, par toi (pas par chaque membre)** : créer l'appli pCloud sur <https://docs.pcloud.com/my_apps/> (*Redirect URIs* = l'adresse de la page, ex. `https://<compte>.github.io/Partoche-and-Friends/` et `http://localhost:53682/`), copier le *Client ID* dans [`web/config.js`](web/config.js) (`pcloudClientId`), puis publier `web/` sur GitHub Pages.
+**Une seule fois, par toi (pas par chaque membre)** : créer l'appli pCloud sur <https://docs.pcloud.com/my_apps/> (*Redirect URIs* = l'adresse de la page, ex. `https://soaresden.github.io/Partoche-and-Friends/` et `http://localhost:53682/`), copier le *Client ID* dans [`web/config.js`](web/config.js) (`pcloudClientId`), puis publier : chaque push sur `main` met `web/` en ligne sur <https://soaresden.github.io/Partoche-and-Friends/> (action `.github/workflows/pages.yml`).
 
 **Pour chacun**, à l'ouverture de la page :
 
