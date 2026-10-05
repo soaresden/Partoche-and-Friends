@@ -1,7 +1,7 @@
 <p align="center"><img src="web/img/logo.svg" width="110" alt=""></p>
 
 <h1 align="center">Partoche and Friends</h1>
-<p align="center"><a href="https://soaresden.github.io/Partoche-and-Friends/"><b>▶ Ouvrir l'appli</b></a> · <a href="https://soaresden.github.io/Partoche-and-Friends/tuto.html"><b>📖 Le tuto</b></a></p>
+<p align="center"><a href="https://soaresden.github.io/Partoche-and-Friends/"><b>▶ Ouvrir l'appli</b></a> · <a href="https://github.com/soaresden/Partoche-and-Friends/releases/latest/download/Partoche-and-Friends.apk"><b>📱 L'APK Android</b></a> · <a href="https://soaresden.github.io/Partoche-and-Friends/tuto.html"><b>📖 Le tuto</b></a></p>
 <p align="center"><b>Une maxi-bibliothèque de partitions MuseScore entre potes.<br>Chacun garde les siennes dans son pCloud, et on bosse les mêmes morceaux ensemble.</b></p>
 
 ---
@@ -82,6 +82,7 @@ Tester sur PC : double-cliquer sur **`Lancer.bat`** (ou `python -m http.server 5
 
 ## Développement
 
+- `android/` : coquille WebView qui ouvre l'appli en ligne (toujours à jour). L'APK est fabriqué et publié par l'action `.github/workflows/apk.yml` (version = `versionName` de `android/app/build.gradle`). Clé de signature : secrets GitHub + copie locale `android/keystore/` (ignorée par git, à sauvegarder).
 - `web/` : l'appli (HTML/JS sans build).
   - `js/app.js` interface · `js/cloud.js` mon espace (pCloud OAuth ou démo) · `js/group.js` collectif, invitation, chiffrement, relais · `js/library.js` bibliothèque fusionnée, versions, chantiers, commentaires, notes · `js/viewer.js` lecteur.
   - `js/partoche/` : briques reprises de Partoche (`score.js`, `audio.js`, `midi.js`, `ink.js` + `setLayers` multi-calques, `pcloud.js` liens publics, `store.js`). `tools/sync-partoche.sh` les remet à jour.

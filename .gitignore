@@ -4,3 +4,9 @@ Thumbs.db
 *.keystore
 web/config.local.js
 .claude/
+android/keystore/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk

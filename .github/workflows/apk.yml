@@ -1,0 +1,56 @@
+# Fabrique l'APK Android et le publie dans les Releases.
+#   - à chaque changement dans android/ sur main, ou à la main (onglet Actions -> APK -> Run workflow)
+#   - version = versionName de android/app/build.gradle ; même version republiée = APK remplacé
+#   - lien fixe : https://github.com/soaresden/Partoche-and-Friends/releases/latest/download/Partoche-and-Friends.apk
+name: APK
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: apk
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Clé de signature
+        env:
+          PAF_KEYSTORE_B64: ${{ secrets.PAF_KEYSTORE_B64 }}
+        run: echo "$PAF_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/partoche-friends.jks"
+      - name: Construire l'APK
+        env:
+          PAF_KEYSTORE: ${{ runner.temp }}/partoche-friends.jks
+          PAF_KEYSTORE_PASSWORD: ${{ secrets.PAF_KEYSTORE_PASSWORD }}
+        run: gradle -p android assembleRelease --no-daemon
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android/app/build.gradle)
+          cp android/app/build/outputs/apk/release/app-release.apk Partoche-and-Friends.apk
+          if ! gh release view "v$VER" >/dev/null 2>&1; then
+            gh release create "v$VER" --title "Partoche and Friends $VER" --latest --notes "## 📱 Appli Android
+          **➡️ [Partoche-and-Friends.apk](https://github.com/${{ github.repository }}/releases/latest/download/Partoche-and-Friends.apk)**
+
+          Sur la tablette : télécharger, ouvrir le fichier, autoriser l'installation depuis le navigateur.
+
+          ## 💻 Sur ordi ou iPad, rien à installer
+          https://soaresden.github.io/Partoche-and-Friends/
+
+          ## 📖 Le tuto
+          https://soaresden.github.io/Partoche-and-Friends/tuto.html"
+          fi
+          gh release upload "v$VER" Partoche-and-Friends.apk --clobber

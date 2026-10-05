@@ -1,0 +1,41 @@
+plugins { id 'com.android.application' }
+
+// Coquille Android de Partoche and Friends : ouvre l'appli en ligne (GitHub Pages) dans une WebView.
+// Signature : clé fournie par l'action GitHub (secrets), ou android/keystore/ en local (jamais dans le dépôt).
+def ksFile = file(System.getenv('PAF_KEYSTORE') ?: '../keystore/partoche-friends.jks')
+def ksPass = System.getenv('PAF_KEYSTORE_PASSWORD') ?: {
+    def p = rootProject.file('keystore/keystore.properties')
+    if (!p.exists()) return ''
+    def props = new Properties(); p.withInputStream { props.load(it) }; props.getProperty('password', '')
+}()
+
+android {
+    namespace 'fr.soaresden.partochefriends'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'fr.soaresden.partochefriends'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+    signingConfigs {
+        release {
+            storeFile ksFile
+            storePassword ksPass
+            keyAlias 'partochefriends'
+            keyPassword ksPass
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ksFile.exists() && ksPass ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint { checkReleaseBuilds false; abortOnError false }
+}
