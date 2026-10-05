@@ -643,9 +643,9 @@ $('#vBack').onclick = async () => {
 }
 addEventListener('pagehide', () => { if (saveInk) flushSave() })
 
-// ouverture animée : ~2,6 s (ou un clic), puis l'appli
+// ouverture animée : ~3 s (ou un clic), puis l'appli
 {
   const sp = $('#splash'), bye = () => { if (!sp || sp.classList.contains('out')) return; sp.classList.add('out'); setTimeout(() => sp.remove(), 600) }
-  if (sp) { sp.onclick = bye; setTimeout(bye, 2600) }
+  if (sp) { sp.onclick = bye; setTimeout(bye, 3200) }
 }
 boot()

@@ -435,3 +435,26 @@ textarea { resize: vertical; font-size: 13px; }
 @keyframes sp-up { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .spband *, .spstage { animation: none !important; } .spnote { display: none; } }
 body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
+
+/* Paf le chien : la voiture passe, le chien tire la langue, tout va bien */
+.sppaf { font-size: 13px; color: var(--muted); animation: sp-up .6s .6s both; }
+.sppaf b { color: #3fd17a; font-size: 15px; }
+.sppaf span { color: #ffd166; display: inline-block; animation: sp-up .4s 1.7s both; }
+.sproad { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: min(24vh, 170px); overflow: hidden; }
+.sproad g, .sproad path { transform-box: fill-box; }
+.sp-dashes { animation: sp-dash .5s linear infinite; }
+.sp-car { animation: sp-drive 2.4s cubic-bezier(.45,.05,.55,.95) .3s infinite; transform: translateX(900px); }
+.sp-wind { animation: sp-blink .2s linear infinite; }
+.sp-tongue { transform-origin: 50% 0; animation: sp-pant .32s ease-in-out infinite alternate; }
+.sp-tail { transform-origin: 100% 100%; animation: sp-wag .25s ease-in-out infinite alternate; }
+.sp-ear { transform-origin: 70% 10%; animation: sp-flap 2.4s ease-in-out .3s infinite; }
+.sp-ear.r { transform-origin: 30% 10%; }
+.sp-dog { animation: sp-hop 2.4s ease-in-out .3s infinite; }
+@keyframes sp-dash { to { transform: translateX(-48px); } }
+@keyframes sp-drive { 0% { transform: translateX(900px); } 70%, 100% { transform: translateX(-260px); } }
+@keyframes sp-blink { 50% { opacity: .2; } }
+@keyframes sp-pant { from { transform: scaleY(.8); } to { transform: scaleY(1.25); } }
+@keyframes sp-wag { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes sp-flap { 0%, 22%, 48%, 100% { transform: rotate(0); } 30% { transform: rotate(-40deg); } 38% { transform: rotate(25deg); } }
+@keyframes sp-hop { 0%, 24%, 44%, 100% { transform: translate(300px, 84px); } 32% { transform: translate(300px, 76px) rotate(-4deg); } }
+@media (prefers-reduced-motion: reduce) { .sproad * { animation: none !important; } .sp-car { display: none; } }
