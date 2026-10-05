@@ -25,7 +25,9 @@
     <div id="stepWelcome" class="step">
       <h2>Bienvenue&nbsp;!</h2>
       <button id="btnSetup" class="big primary">⚙️ Configurer</button>
-      <p class="hint">Avec ton pCloud : tes partitions dans la bibliothèque du collectif, partagées avec tes potes.</p>
+      <p class="hint">Première fois : avec ton pCloud, tes partitions dans la bibliothèque du collectif, partagées avec tes potes.</p>
+      <button id="btnResume" class="big">🔁 Déjà configuré ailleurs ? Connecte juste ton pCloud</button>
+      <p class="hint">Sur un nouvel appareil : l'appli retrouve ton profil et ton collectif dans ton dossier Partoche (<code>Friends/</code>).</p>
       <button id="btnDemo" class="big">🧪 Mode démo</button>
       <p class="hint">Pour voir à quoi ça ressemble : sans compte, tout reste dans ce navigateur, rien n'est partagé.</p>
       <p class="hint" style="text-align:center"><a href="tuto.html" target="_blank">📖 Le tuto pas à pas</a></p>
@@ -58,7 +60,7 @@
       </div>
       <button id="btnPcloud" class="big primary">☁️ Connecter mon pCloud</button>
       <p class="hint" id="pcloudHint">La page officielle pCloud s'ouvre : connecte-toi (email, Google, Apple…) puis « Autoriser ». L'appli n'écrit que dans le sous-dossier <code>Friends/</code> de ton dossier Partoche.</p>
-      <button class="link back" data-back="start">← Retour</button>
+      <button class="link back" id="spaceBack" data-back="start">← Retour</button>
     </div>
 
     <div id="stepFolder" class="step" hidden>

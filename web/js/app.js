@@ -1,5 +1,5 @@
 // Partoche and Friends — interface
-import { openSpace, takeOAuthRedirect, hasPcloud, pcloudLoginUrl, forgetPcloud, currentPcloud, adoptPcloud, MINE, sharedFolders, createShared, checkLink, setMyRoot, clientId, setClientId, redirectUri } from './cloud.js'
+import { openSpace, takeOAuthRedirect, hasPcloud, pcloudLoginUrl, forgetPcloud, currentPcloud, adoptPcloud, MINE, sharedFolders, createShared, checkLink, setMyRoot, clientId, setClientId, redirectUri, findExisting } from './cloud.js'
 import { newGroup, readInvite, inviteUrl, randomId, Relay, makeDeviceLink, readDeviceLink, openDeviceLink } from './group.js'
 import { Library, emptyIndex, STATUS, normTitle } from './library.js'
 import { Viewer, scoreInfo } from './viewer.js'
@@ -70,6 +70,7 @@ for (const b of $$('[data-back]')) b.onclick = () => {
 
 // ---- accueil ----
 $('#btnSetup').onclick = () => setupStart()
+$('#btnResume').onclick = () => { lsSet('maf:intent', 'resume'); setupSpace() }
 $('#btnDemo').onclick = () => { lsSet('maf:space', 'demo'); lsSet('maf:intent', 'new'); boot() }
 
 // ---- 1. partir de rien / j'ai un lien ----
@@ -118,9 +119,11 @@ $('#btnStartOk').onclick = () => {
 function setupSpace(err) {
   step('Space', err)
   const inv = lsGet('maf:invite', null)
-  $('#intentRecap').innerHTML = lsGet('maf:intent', '') === 'link' && inv
-    ? `🔗 Tu vas rejoindre <b>${esc(inv.g.name)}</b>`
+  const intent = lsGet('maf:intent', '')
+  $('#intentRecap').innerHTML = intent === 'resume' ? '🔁 On retrouve ta configuration dans ton pCloud : rien à refaire.'
+    : intent === 'link' && inv ? `🔗 Tu vas rejoindre <b>${esc(inv.g.name)}</b>`
     : `✨ Tu vas créer <b>${esc(lsGet('maf:groupName', '') || 'ton collectif')}</b>`
+  $('#spaceBack').hidden = intent === 'resume'
   // pas d'identifiant (version en ligne, premier membre) : on le demande, avec l'adresse de retour à déclarer chez pCloud
   $('#clientBox').hidden = !!clientId()
   $('#redirectShow').textContent = redirectUri()
@@ -132,6 +135,22 @@ $('#btnPcloud').onclick = () => { lsSet('maf:space', 'pcloud'); location.href = 
 // ---- 3. le dossier Partoche (déjà partagé par lien) ----
 let folderPick = null
 async function setupFolder() {
+  // déjà configuré ailleurs ? Friends/!Moi.json contient tout : on reprend sans rien redemander
+  step('Folder', 'Recherche d’une configuration existante dans ton pCloud…')
+  try {
+    const ex = await findExisting()
+    if (ex) {
+      const pw = ex.index.me.pw || '', c = await checkLink(ex.folder.link, pw)
+      if (c.ok) {
+        setMyRoot({ ...ex.folder, link: c.link, pw })
+        lsSet('maf:index', ex.index)
+        if (ex.index.group) lsSet('maf:intent', 'resume')
+        toast(`👋 Re-bonjour ${ex.index.me.name} : configuration retrouvée dans « ${ex.folder.name} »`, 4000)
+        return boot()
+      }
+      setupMsg('Configuration retrouvée dans « ' + ex.folder.name + ' », mais le mot de passe du lien a changé : choisis le dossier et tape le nouveau.')
+    }
+  } catch (e) { console.warn(e) }
   step('Folder', 'Recherche de tes dossiers partagés…')
   let list = []
   try { list = await sharedFolders() } catch (e) { setupMsg('Lecture impossible de tes liens pCloud : ' + e.message); return }
@@ -206,7 +225,8 @@ $('#btnDevOk').onclick = async () => {
   if (pin.length !== 6) return setupMsg('Le code fait 6 chiffres.')
   const d = await openDeviceLink(pendingDevice, pin)
   if (!d) return setupMsg('Code incorrect (ou QR code expiré : régénère-le sur l’autre appareil).')
-  adoptPcloud(d.pcloud)
+  adoptPcloud(d.pcloud); setClientId(d.c)
+  if (d.index) lsSet('maf:index', d.index)
   lsSet('maf:space', 'pcloud')
   for (const k of ['maf:invite', 'maf:intent']) localStorage.removeItem(k)
   boot()
@@ -226,6 +246,7 @@ async function finishSetup() {
     localStorage.removeItem('maf:invite'); return startMain()
   }
   if (inv) return join(inv)
+  if (intent === 'resume') { localStorage.removeItem('maf:intent'); toast('Pas de collectif trouvé dans ton pCloud : choisis comment commencer.', 5000) }
   if (intent === 'new' || space.kind === 'demo') return join({ g: { ...newGroup(lsGet('maf:groupName', '') || (space.kind === 'demo' ? 'Collectif démo' : '')), admin: lib.me.id }, m: [] })
   setupStart()
 }
@@ -404,10 +425,20 @@ function renderPiece() {
   $('#pdTitle').textContent = piece.title
   $('#pdVersions').innerHTML = piece.versions.map((v, i) => `<div class="version">${avatar(v.owner)}
       <div class="grow"><b>Chez ${esc(v.owner.name)}</b><div class="muted">${esc(v.name)}${v.size ? ' · ' + Math.round(v.size / 1024) + ' Ko' : ''}</div></div>
-      <button data-open="${i}" class="primary">Ouvrir</button><button data-dl="${i}" title="Télécharger">⬇</button>${v.mine ? `<button data-rm="${i}" title="Retirer">🗑</button>` : ''}</div>`).join('') +
+      <button data-open="${i}" class="primary">Ouvrir</button><button data-dl="${i}" title="Télécharger">⬇</button>${v.mine ? `<button data-rm="${i}" title="Retirer">🗑</button>` : piece.versions.some(x => x.mine) ? '' : `<button data-cp="${i}" title="Copier dans mon dossier MSCZ">📥 Copier chez moi</button>`}</div>`).join('') +
 ''
   for (const b of $$('#pdVersions [data-open]')) b.onclick = () => { $('#pieceDlg').close(); openViewer(piece.versions[+b.dataset.open]) }
   for (const b of $$('#pdVersions [data-dl]')) b.onclick = () => download(piece.versions[+b.dataset.dl])
+  // copier la partition d'un pote dans mon MSCZ/ : elle devient aussi la mienne (et suit dans tous mes collectifs)
+  for (const b of $$('#pdVersions [data-cp]')) b.onclick = async () => {
+    const v = piece.versions[+b.dataset.cp]
+    b.disabled = true; b.textContent = 'Copie…'
+    try {
+      const bytes = await lib.bytes(v)
+      await lib.addScore(new File([bytes], v.name), { title: v.title, composer: v.composer })
+      relay && relay.send({ ev: 'index' }); toast('📥 « ' + v.title + ' » copiée dans ton dossier MSCZ'); renderAll(); renderPiece()
+    } catch (e) { toast('Copie impossible : ' + (e.message || e), 6000); b.disabled = false; b.textContent = '📥 Copier chez moi' }
+  }
   for (const b of $$('#pdVersions [data-rm]')) b.onclick = async () => {
     const v = piece.versions[+b.dataset.rm]
     if (!confirm('Retirer « ' + v.name + ' » de ton dossier ?')) return
@@ -457,7 +488,7 @@ $('#btnInvite').onclick = () => {
 }
 $('#btnDevice').onclick = async () => {
   if (space.kind !== 'pcloud') return toast('En mode démo, il n’y a rien à transférer.')
-  const { url, pin } = await makeDeviceLink({ pcloud: currentPcloud() })
+  const { url, pin } = await makeDeviceLink({ pcloud: currentPcloud(), c: clientId(), index: lib.index })
   qr($('#deviceQr'), url); $('#devicePin').textContent = pin; $('#deviceOut').value = url
   $('#meDlg').close(); $('#deviceDlg').showModal()
 }

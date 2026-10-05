@@ -66,6 +66,28 @@ export async function sharedFolders() {
     .map(x => ({ folderid: x.metadata.folderid, name: x.metadata.name, link: x.link }))
     .sort((a, b) => (/partoche/i.test(b.name) ? 1 : 0) - (/partoche/i.test(a.name) ? 1 : 0))
 }
+// Déjà configuré (autre appareil, autre navigateur) ? On cherche Friends/!Moi.json dans mes dossiers partagés :
+// s'il existe, tout est dedans (profil, collectif, mot de passe du lien) -> rien à refaire.
+export async function findExisting() {
+  const { token, api: base } = lsGet(TOKEN_KEY, {})
+  const kid = (f, name, folder) => (f.contents || []).find(c => !!c.isfolder === folder && c.name === name)
+  for (const f of await sharedFolders()) {
+    try {
+      const root = (await api(base, token, 'listfolder', { folderid: f.folderid })).metadata
+      const fr = kid(root, 'Friends', true); if (!fr) continue
+      const moi = kid((await api(base, token, 'listfolder', { folderid: fr.folderid })).metadata, '!Moi.json', false); if (!moi) continue
+      let txt = null
+      try { const r = await fetch(`${base}/gettextfile?${new URLSearchParams({ fileid: moi.fileid, access_token: token })}`); const t = await r.text(); if (r.ok && !/^\s*\{\s*"result"\s*:\s*[1-9]/.test(t)) txt = t } catch { }
+      if (txt == null) {
+        const z = unzipSync(new Uint8Array(await (await fetch(`${base}/getzip?${new URLSearchParams({ fileids: moi.fileid, access_token: token })}`)).arrayBuffer()))
+        txt = new TextDecoder().decode(z[Object.keys(z).find(n => !n.endsWith('/'))])
+      }
+      const index = JSON.parse(txt)
+      if (index && index.me && index.me.name) return { folder: f, index }
+    } catch (e) { console.warn('recherche de', f.name, e) }
+  }
+  return null
+}
 // Partir de rien : dossier « Partoche » (+ MSCZ) et son lien de partage
 export async function createShared(name = 'Partoche') {
   const { token, api: base } = lsGet(TOKEN_KEY, {})
