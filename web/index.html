@@ -139,9 +139,15 @@
 
     <div id="stepProfile" class="step" hidden>
       <h2 id="profileTitle">4. Comment les autres te voient</h2>
-      <label>Prénom <input id="pName" maxlength="24" autocomplete="given-name"></label>
-      <div class="row"><label>Emoji <input id="pEmoji" maxlength="4" class="emoji-in" value="🎻"></label>
-        <label>Couleur <input id="pColor" type="color" value="#3e8ed0"></label></div>
+      <div class="look" id="pLook">
+        <div class="look-prev"><span class="avatar xl" id="pPrev">🎻</span><div><b id="pPrevName">Toi</b><small>c'est comme ça que les autres te voient</small></div></div>
+        <label>Prénom <input id="pName" maxlength="24" autocomplete="given-name"></label>
+        <div class="look-label">Ton emoji</div>
+        <div class="emoji-grid" id="pEmojis"></div>
+        <div class="look-label">Ta couleur <small>c'est aussi la couleur de ton interface</small></div>
+        <div class="swatches" id="pSwatches"></div>
+        <input type="hidden" id="pEmoji"><input type="hidden" id="pColor">
+      </div>
       <label>Instruments <input id="pInstr" placeholder="violon, piano…"></label>
       <button id="btnProfileOk" class="big primary">C'est parti</button>
     </div>
@@ -215,10 +221,17 @@
 <dialog id="meDlg">
   <form method="dialog" class="dlg-x"><button>✕</button></form>
   <h2>Mon profil</h2>
-  <label>Prénom <input id="mName" maxlength="24"></label>
-  <div class="row"><label>Emoji <input id="mEmoji" maxlength="4" class="emoji-in"></label><label>Couleur <input id="mColor" type="color"></label></div>
+  <div class="look" id="mLook">
+        <div class="look-prev"><span class="avatar xl" id="mPrev">🎻</span><div><b id="mPrevName">Toi</b><small>c'est comme ça que les autres te voient</small></div></div>
+        <label>Prénom <input id="mName" maxlength="24" autocomplete="given-name"></label>
+        <div class="look-label">Ton emoji</div>
+        <div class="emoji-grid" id="mEmojis"></div>
+        <div class="look-label">Ta couleur <small>c'est aussi la couleur de ton interface</small></div>
+        <div class="swatches" id="mSwatches"></div>
+        <input type="hidden" id="mEmoji"><input type="hidden" id="mColor">
+      </div>
   <label>Instruments <input id="mInstr"></label>
-  <div class="row"><button id="btnMeSave" class="primary">Enregistrer</button></div>
+  <button id="btnMeSave" class="big primary">Enregistrer</button>
   <p class="muted" id="meSpace"></p>
   <p><button id="btnDevice">📱 Ajouter un appareil (QR code)</button></p>
   <details><summary>Avancé</summary>

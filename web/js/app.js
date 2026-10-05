@@ -132,6 +132,39 @@ function setupSpace(err) {
 $('#clientIdIn').oninput = () => { setClientId($('#clientIdIn').value); $('#btnPcloud').disabled = !$('#clientIdIn').value.trim() }
 $('#btnPcloud').onclick = () => { lsSet('maf:space', 'pcloud'); location.href = pcloudLoginUrl() }
 
+// ---- choisir son emoji et sa couleur (profil) : aperçu en direct, la couleur devient celle de l'interface ----
+const EMOJIS = ['🎻', '🎸', '🎹', '🥁', '🎺', '🎷', '🪕', '🪗', '🎤', '🪈', '🎧', '🎼', '🎵', '🦊', '🐱', '🐸', '🦄', '🐙', '🔥', '😎', '🌈', '⭐', '🍀', '☕']
+const COLORS = ['#1aa35a', '#14b8a6', '#3e8ed0', '#7c5cff', '#c026d3', '#ff4fa3', '#e5484d', '#ff8a3d', '#f5c518', '#8c1d2f', '#a16207', '#64748b']
+function applyTheme(c) {
+  if (!/^#[0-9a-f]{6}$/i.test(c || '')) return
+  document.documentElement.style.setProperty('--accent', c)
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = c
+}
+function mountLook(p) {
+  const em = $('#' + p + 'Emoji'), co = $('#' + p + 'Color')
+  const paint = () => {
+    const pv = $('#' + p + 'Prev'); pv.textContent = em.value || '🎵'; pv.style.setProperty('--c', co.value)
+    $('#' + p + 'PrevName').textContent = $('#' + p + 'Name').value.trim() || 'Toi'
+    for (const b of $$('#' + p + 'Emojis button')) b.classList.toggle('on', b.dataset.e === em.value)
+    for (const b of $$('#' + p + 'Swatches button')) b.classList.toggle('on', b.dataset.c.toLowerCase() === co.value.toLowerCase())
+    const cu = $('#' + p + 'Custom'); if (cu) { cu.value = co.value; cu.parentElement.classList.toggle('on', !COLORS.some(c => c.toLowerCase() === co.value.toLowerCase())) }
+    applyTheme(co.value)
+  }
+  $('#' + p + 'Emojis').innerHTML = EMOJIS.map(e => `<button type="button" data-e="${e}">${e}</button>`).join('') +
+    `<input id="${p}EmojiOther" class="emoji-other" maxlength="4" placeholder="+" title="Un autre emoji">`
+  $('#' + p + 'Swatches').innerHTML = COLORS.map(c => `<button type="button" data-c="${c}" style="--c:${c}" title="${c}"></button>`).join('') +
+    `<label class="swatch-custom" title="Une autre couleur"><input type="color" id="${p}Custom"><span>🎨</span></label>`
+  for (const b of $$('#' + p + 'Emojis button')) b.onclick = () => { em.value = b.dataset.e; paint() }
+  $('#' + p + 'EmojiOther').oninput = e => { const v = e.target.value.trim(); if (v) { em.value = v; paint() } }
+  for (const b of $$('#' + p + 'Swatches button')) b.onclick = () => { co.value = b.dataset.c; paint() }
+  $('#' + p + 'Custom').oninput = e => { co.value = e.target.value; paint() }
+  $('#' + p + 'Name').addEventListener('input', paint)
+  return (emoji, color) => { em.value = emoji || '🎻'; co.value = color || COLORS[0]; $('#' + p + 'EmojiOther').value = EMOJIS.includes(em.value) ? '' : em.value; paint() }
+}
+const setLookP = mountLook('p'), setLookM = mountLook('m')
+// fermer le profil sans enregistrer : on revient à sa couleur
+$('#meDlg').addEventListener('close', () => lib && applyTheme(lib.me.color))
+
 // ---- 3. le dossier Partoche (déjà partagé par lien) ----
 let folderPick = null
 async function setupFolder() {
@@ -211,7 +244,8 @@ $('#btnFolderNew').onclick = async () => {
 function setupProfile() {
   step('Profile')
   $('#profileTitle').textContent = space.kind === 'demo' ? 'Comment tu t’appelles ?' : '3. Comment les autres te voient'
-  $('#pName').value = lib.me.name || ''; $('#pEmoji').value = lib.me.emoji || '🎻'; $('#pColor').value = lib.me.color || '#3e8ed0'; $('#pInstr').value = lib.me.instruments || ''
+  $('#pName').value = lib.me.name || ''; $('#pInstr').value = lib.me.instruments || ''
+  setLookP(lib.me.emoji && lib.me.emoji !== '🎵' ? lib.me.emoji : '🎻', lib.me.color && lib.me.color !== '#3e8ed0' ? lib.me.color : COLORS[0])
   $('#pName').focus()
 }
 $('#btnProfileOk').onclick = async () => {
@@ -281,7 +315,7 @@ async function publishMyLink() {
 //  BIBLIOTHÈQUE
 // =====================================================================
 async function startMain(justJoined) {
-  show('main')
+  show('main'); applyTheme(lib.me.color)
   $('#groupTitle').textContent = lib.index.group.name
   $('#spaceInfo').textContent = space.kind === 'demo' ? 'mode démo · rien n’est partagé' : `pCloud · dossier « ${(space.root || {}).name || ''} »`
   if (space.kind === 'pcloud' && !lib.me.link) { try { await publishMyLink(); await lib.save() } catch (e) { toast('Lien de partage impossible : ' + e.message, 6000) } }
@@ -505,7 +539,8 @@ $('#btnCopyInvite').onclick = async () => { try { await navigator.clipboard.writ
 $('#btnShareInvite').onclick = () => navigator.share ? navigator.share({ title: 'Partoche and Friends', text: `Rejoins « ${lib.index.group.name} » sur Partoche and Friends`, url: $('#inviteOut').value }).catch(() => { }) : $('#btnCopyInvite').click()
 
 $('#btnMe').onclick = async () => {
-  $('#mName').value = lib.me.name; $('#mEmoji').value = lib.me.emoji; $('#mColor').value = lib.me.color; $('#mInstr').value = lib.me.instruments || ''
+  $('#mName').value = lib.me.name; $('#mInstr').value = lib.me.instruments || ''
+  setLookM(lib.me.emoji, lib.me.color)
   $('#meSpace').textContent = 'Espace : …'
   $('#meDlg').showModal()
   try { const a = await space.account(); $('#meSpace').textContent = `Espace : ${a.email}${space.kind === 'pcloud' ? (lib.me.pw ? ' · lien protégé par mot de passe' : ' · lien sans mot de passe (pCloud gratuit)') : ''}` } catch { }
@@ -513,7 +548,7 @@ $('#btnMe').onclick = async () => {
 $('#btnMeSave').onclick = async () => {
   Object.assign(lib.me, { name: $('#mName').value.trim() || lib.me.name, emoji: $('#mEmoji').value.trim() || lib.me.emoji, color: $('#mColor').value, instruments: $('#mInstr').value.trim() })
   await lib.save(); relay && relay.send({ ev: 'index' })
-  $('#meDlg').close(); renderAll()
+  $('#meDlg').close(); applyTheme(lib.me.color); renderAll()
 }
 $('#btnLeave').onclick = () => {
   if (!confirm('Oublier ce collectif et la connexion pCloud sur cet appareil ?')) return
