@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <title>Partoche and Friends</title>
+  <title>Partoche and Friends (PAF)</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#3fd17a"/>
@@ -7,71 +7,48 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <!-- portée en fond -->
-  <g stroke="#ffffff" stroke-opacity=".18" stroke-width="6">
-    <line x1="40" y1="150" x2="472" y2="150"/><line x1="40" y1="180" x2="472" y2="180"/>
-    <line x1="40" y1="210" x2="472" y2="210"/><line x1="40" y1="240" x2="472" y2="240"/>
-    <line x1="40" y1="270" x2="472" y2="270"/>
+
+  <!-- violon (à gauche, derrière) -->
+  <g transform="translate(110 250) rotate(-30)">
+    <rect x="-6" y="-170" width="12" height="90" rx="4" fill="#3a2410"/>
+    <circle cx="0" cy="-176" r="11" fill="#3a2410"/>
+    <path d="M0-92c-26 0-38 15-38 35 0 13 10 20 10 30s-17 17-17 37c0 32 20 52 45 52s45-20 45-52c0-20-17-27-17-37s10-17 10-30c0-20-12-35-38-35z" fill="#f2b05c" stroke="#7a4310" stroke-width="6"/>
+  </g>
+  <!-- guitare (à droite, derrière) -->
+  <g transform="translate(404 252) rotate(30)">
+    <rect x="-7" y="-176" width="14" height="96" rx="5" fill="#3a2410"/>
+    <rect x="-15" y="-200" width="30" height="30" rx="7" fill="#3a2410"/>
+    <path d="M0-90c-30 0-46 18-46 40 0 14 10 22 10 30s-20 18-20 40c0 34 26 56 56 56s56-22 56-56c0-22-20-32-20-40s10-16 10-30c0-22-16-40-46-40z" fill="#ffd166" stroke="#7a4310" stroke-width="6"/>
+    <circle cx="0" cy="0" r="15" fill="#3a2410"/>
   </g>
 
-  <!-- piano (en bas) -->
-  <g transform="translate(96 352)">
-    <rect width="320" height="104" rx="14" fill="#0d4f2c"/>
-    <rect x="12" y="12" width="296" height="80" rx="6" fill="#fff"/>
-    <g stroke="#0d4f2c" stroke-width="3">
-      <line x1="49" y1="12" x2="49" y2="92"/><line x1="86" y1="12" x2="86" y2="92"/><line x1="123" y1="12" x2="123" y2="92"/>
-      <line x1="160" y1="12" x2="160" y2="92"/><line x1="197" y1="12" x2="197" y2="92"/><line x1="234" y1="12" x2="234" y2="92"/>
-      <line x1="271" y1="12" x2="271" y2="92"/>
-    </g>
-    <g fill="#0d4f2c">
-      <rect x="38" y="12" width="22" height="48" rx="3"/><rect x="75" y="12" width="22" height="48" rx="3"/>
-      <rect x="149" y="12" width="22" height="48" rx="3"/><rect x="186" y="12" width="22" height="48" rx="3"/><rect x="223" y="12" width="22" height="48" rx="3"/>
-    </g>
-    <rect x="124" y="12" width="35" height="80" fill="#b8f5cf"/><!-- touche jouée -->
+  <!-- Paf le chien, au centre, langue pendante -->
+  <g transform="translate(256 236)">
+    <path d="M-96-40c-34 6-50 58-30 104 26-8 44-44 46-96z" fill="#8a5426"/>
+    <path d="M96-40c34 6 50 58 30 104-26-8-44-44-46-96z" fill="#8a5426"/>
+    <circle cx="0" cy="0" r="100" fill="#d9a066"/>
+    <ellipse cx="0" cy="44" rx="58" ry="46" fill="#f1d3ad"/>
+    <circle cx="-36" cy="-14" r="12" fill="#1b1b1b"/><circle cx="-32" cy="-18" r="4" fill="#fff"/>
+    <circle cx="36" cy="-14" r="12" fill="#1b1b1b"/><circle cx="40" cy="-18" r="4" fill="#fff"/>
+    <ellipse cx="0" cy="22" rx="20" ry="14" fill="#1b1b1b"/>
+    <path d="M-28 48q28 22 56 0" stroke="#1b1b1b" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M-15 56h30v40a15 15 0 0 1-30 0z" fill="#ff5c8a" stroke="#c23a63" stroke-width="4"/>
+    <line x1="0" y1="60" x2="0" y2="92" stroke="#c23a63" stroke-width="3"/>
   </g>
 
-  <!-- violon (à gauche, penché) + archet -->
-  <g transform="translate(150 230) rotate(-28)">
-    <path d="M0-120c-22 0-34 14-34 32 0 12 8 20 8 30s-14 16-14 34c0 30 18 48 40 48s40-18 40-48c0-18-14-24-14-34s8-18 8-30c0-18-12-32-34-32z" fill="#f2b05c" stroke="#7a4310" stroke-width="5"/>
-    <rect x="-5" y="-190" width="10" height="74" rx="4" fill="#3a2410"/>
-    <circle cx="0" cy="-196" r="10" fill="#3a2410"/>
-    <path d="M-11-62q-6 10 0 20M11-62q6 10 0 20" stroke="#7a4310" stroke-width="4" fill="none"/>
-    <line x1="-3" y1="-180" x2="-3" y2="20" stroke="#fff" stroke-width="1.5"/><line x1="3" y1="-180" x2="3" y2="20" stroke="#fff" stroke-width="1.5"/>
-  </g>
-  <line x1="62" y1="168" x2="236" y2="292" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
-
-  <!-- basse électrique (à droite, derrière la guitare) -->
-  <g transform="translate(438 296) rotate(-12)">
-    <rect x="-6" y="-230" width="12" height="160" rx="4" fill="#2b1a0b"/>
-    <rect x="-13" y="-258" width="26" height="34" rx="6" fill="#2b1a0b"/>
-    <g fill="#e9fff1"><circle cx="-18" cy="-252" r="5"/><circle cx="-18" cy="-234" r="5"/><circle cx="18" cy="-252" r="5"/><circle cx="18" cy="-234" r="5"/></g>
-    <path d="M-10-86c-24-8-44 6-44 30 0 14 8 20 6 32-4 22-10 40 4 54 16 16 50 14 70 0 16-12 14-34 6-52-6-14 2-22 4-38 2-20-12-34-28-30-8 2-12 6-18 4z" fill="#8c1d2f" stroke="#2b1a0b" stroke-width="5"/>
-    <rect x="-16" y="-36" width="32" height="10" rx="3" fill="#2b1a0b"/>
-    <rect x="-14" y="6" width="28" height="9" rx="3" fill="#2b1a0b"/>
-    <g stroke="#fff" stroke-width="1.6"><line x1="-4.5" y1="-230" x2="-4.5" y2="10"/><line x1="-1.5" y1="-230" x2="-1.5" y2="10"/><line x1="1.5" y1="-230" x2="1.5" y2="10"/><line x1="4.5" y1="-230" x2="4.5" y2="10"/></g>
+  <!-- clavier de piano en bas -->
+  <g transform="translate(96 384)">
+    <rect width="320" height="88" rx="16" fill="#0d4f2c"/>
+    <rect x="12" y="12" width="296" height="64" rx="6" fill="#fff"/>
+    <g stroke="#0d4f2c" stroke-width="3"><line x1="49" y1="12" x2="49" y2="76"/><line x1="86" y1="12" x2="86" y2="76"/><line x1="123" y1="12" x2="123" y2="76"/><line x1="160" y1="12" x2="160" y2="76"/><line x1="197" y1="12" x2="197" y2="76"/><line x1="234" y1="12" x2="234" y2="76"/><line x1="271" y1="12" x2="271" y2="76"/></g>
+    <g fill="#0d4f2c"><rect x="38" y="12" width="22" height="38" rx="3"/><rect x="75" y="12" width="22" height="38" rx="3"/><rect x="149" y="12" width="22" height="38" rx="3"/><rect x="186" y="12" width="22" height="38" rx="3"/><rect x="223" y="12" width="22" height="38" rx="3"/></g>
+    <rect x="124" y="12" width="35" height="64" fill="#b8f5cf"/>
   </g>
 
-  <!-- guitare (à droite, penchée) -->
-  <g transform="translate(350 240) rotate(30)">
-    <rect x="-7" y="-200" width="14" height="110" rx="5" fill="#3a2410"/>
-    <rect x="-14" y="-224" width="28" height="30" rx="6" fill="#3a2410"/>
-    <path d="M0-100c-30 0-46 18-46 40 0 14 10 22 10 30s-20 18-20 40c0 34 26 56 56 56s56-22 56-56c0-22-20-32-20-40s10-16 10-30c0-22-16-40-46-40z" fill="#ffd166" stroke="#7a4310" stroke-width="5"/>
-    <circle cx="0" cy="-10" r="16" fill="#3a2410"/>
-    <rect x="-18" y="40" width="36" height="8" rx="3" fill="#3a2410"/>
-  </g>
-
-  <!-- batterie (au centre, avec baguettes qui frappent) -->
-  <g transform="translate(256 286)">
-    <ellipse cx="0" cy="-20" rx="56" ry="16" fill="#e9fff1" stroke="#0d4f2c" stroke-width="5"/>
-    <path d="M-56-20v46c0 9 25 16 56 16s56-7 56-16v-46" fill="#e5484d" stroke="#0d4f2c" stroke-width="5"/>
-    <path d="M-56 0l28 26M-28 0l28 26M0 0l28 26M28 0l28 26" stroke="#fff" stroke-opacity=".7" stroke-width="4"/>
-    <line x1="-78" y1="-84" x2="-14" y2="-26" stroke="#3a2410" stroke-width="8" stroke-linecap="round"/>
-    <line x1="80" y1="-92" x2="20" y2="-30" stroke="#3a2410" stroke-width="8" stroke-linecap="round"/>
-    <g stroke="#fff" stroke-width="5" stroke-linecap="round"><line x1="-6" y1="-52" x2="-10" y2="-66"/><line x1="10" y1="-54" x2="16" y2="-68"/></g>
-  </g>
-
-  <!-- notes qui s'envolent -->
+  <!-- baguettes de batterie croisées + notes -->
+  <g stroke="#3a2410" stroke-width="12" stroke-linecap="round"><line x1="198" y1="34" x2="312" y2="122"/><line x1="314" y1="34" x2="200" y2="122"/></g><g fill="#f6e2c4"><circle cx="198" cy="34" r="9"/><circle cx="314" cy="34" r="9"/></g>
   <g fill="#fff">
-    <path d="M246 60v62a16 12 0 1 1-8-10V72l40-10v50a16 12 0 1 1-8-10V60z" transform="translate(-6 0)"/>
+    <path d="M70 66v52a13 10 0 1 1-7-8V80l32-8v38a13 10 0 1 1-7-8V66z"/>
+    <circle cx="432" cy="102" r="10"/><rect x="439" y="56" width="6" height="48"/>
   </g>
 </svg>
