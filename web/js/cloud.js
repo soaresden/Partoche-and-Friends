@@ -133,12 +133,17 @@ class PcloudSpace {
     if (meta) this.index[path] = meta
     return meta
   }
+  // texte d'un de mes fichiers : gettextfile, et si pCloud ou le navigateur le refuse, par getzip (comme les .mscz)
   async getText(path) {
     const m = this.index[path]; if (!m) return null
-    const r = await fetch(`${this.api}/gettextfile?${new URLSearchParams({ fileid: m.fileid, access_token: this.token })}`)
-    const t = await r.text()
-    if (/^\s*\{\s*"result"\s*:\s*[1-9]/.test(t)) throw new Error('pCloud : lecture impossible de ' + path)
-    return t
+    try {
+      const r = await fetch(`${this.api}/gettextfile?${new URLSearchParams({ fileid: m.fileid, access_token: this.token })}`)
+      const t = await r.text()
+      if (r.ok && !/^\s*\{\s*"result"\s*:\s*[1-9]/.test(t)) return t
+    } catch { }
+    const b = await this.getBytes(path)
+    if (!b) throw new Error('pCloud : lecture impossible de ' + path)
+    return new TextDecoder().decode(b)
   }
   async getJson(path) { const t = await this.getText(path); return t ? JSON.parse(t) : null }
   // les serveurs de fichiers pCloud refusent les autres sites (CORS) : on passe par getzip, comme Partoche

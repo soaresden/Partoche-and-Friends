@@ -3,6 +3,7 @@
 // et l'appli fusionne ce que tout le monde a publié (sans conflit possible).
 import { PublicFolder } from './partoche/pcloud.js'
 import { SCORES, MINE, NOTES } from './cloud.js'
+import { lsSet } from './partoche/store.js'
 
 export const STATUS = {
   envie: { icon: '💡', label: 'Envie de le jouer' },
@@ -14,6 +15,9 @@ export const scoreId = (memberId, fileName) => memberId + '/' + fileName
 export const notesPath = id => NOTES + id.replace(/[\\/:*?"<>|]/g, '~') + '.json'
 export const prettyTitle = name => name.replace(/\.mscz$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase())
 export const normTitle = t => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\(.*?\)|v\d+\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+
+// même lien de partage = même personne (le code du lien, quelle que soit la forme e./u./my.pcloud)
+export const linkCode = l => (String(l || '').match(/code=([A-Za-z0-9]+)/) || [])[1] || ''
 
 export function emptyIndex(me) {
   return { v: 1, group: null, me, knows: [], scores: {}, work: {}, comments: [], updated: 0 }
@@ -55,15 +59,51 @@ export class Library {
     this.space = space      // mon espace (cloud.js)
     this.index = index      // mon !Moi.json
     this.peers = new Map()  // id -> Peer
+    this.forgetMyGhosts()
+  }
+  // mon lien = moi : une ancienne identité à moi (autre navigateur, config refaite) n'est pas un autre membre
+  myCode() { return linkCode(this.me.link) || linkCode(this.space.root && this.space.root.link) }
+  // l'admin = celui qui a créé le collectif ; lui seul peut retirer quelqu'un
+  adminId() { return (this.index.group && this.index.group.admin) || '' }
+  isAdmin() { return !!this.adminId() && this.adminId() === this.me.id }
+  removedSet() {
+    const a = this.adminId()
+    const src = this.isAdmin() ? this.index : (this.peers.get(a) || {}).index
+    return new Set(((src && src.removed) || []).map(x => x.code || x.id))
+  }
+  isRemoved(card) { const r = this.removedSet(); return r.has(linkCode(card.link)) || r.has(card.id) }
+  async remove(id) {
+    if (!this.isAdmin()) throw new Error('seul l’admin du collectif peut retirer quelqu’un')
+    const k = this.index.knows.find(x => x.id === id); if (!k) return
+    this.index.removed = (this.index.removed || []).concat({ id: k.id, code: linkCode(k.link), name: k.name, at: Date.now() })
+    this.index.knows = this.index.knows.filter(x => x.id !== id)
+    this.peers.delete(id)
+    await this.save()
+  }
+  isMe(card) { const c = this.myCode(); return !!card && (card.id === this.me.id || (!!c && linkCode(card.link) === c)) }
+  forgetMyGhosts() {
+    const before = this.index.knows.length
+    this.index.knows = this.index.knows.filter(k => !this.isMe(k))
+    // et un seul membre par lien de partage (le plus récent gagne)
+    const seen = new Map()
+    for (const k of this.index.knows) seen.set(linkCode(k.link) || k.id, k)
+    this.index.knows = [...seen.values()]
+    return this.index.knows.length !== before
   }
   get me() { return this.index.me }
-  async save() { this.index.updated = Date.now(); await this.space.put(MINE + '!Moi.json', JSON.stringify(this.index, null, 1)) }
+  async save() {
+    this.index.updated = Date.now()
+    lsSet('maf:index', this.index)   // copie dans ce navigateur : un F5 retrouve toujours mon profil
+    await this.space.put(MINE + '!Moi.json', JSON.stringify(this.index, null, 1))
+  }
 
   // ---- membres ----
   // un membre qu'on découvre (invitation, relais, ou cité dans le !Moi.json d'un autre)
   learn(card) {
-    if (!card || !card.id || card.id === this.me.id || !card.link) return false
-    const k = this.index.knows.find(x => x.id === card.id)
+    if (!card || !card.id || !card.link || this.isMe(card) || this.isRemoved(card)) return false
+    // même lien qu'un membre connu sous un autre id (il a refait sa config) : on met à jour la même personne
+    const k = this.index.knows.find(x => x.id === card.id) || this.index.knows.find(x => linkCode(x.link) === linkCode(card.link))
+    if (k && k.id !== card.id) { this.peers.delete(k.id); k.id = card.id }
     if (k) { const changed = ['name', 'emoji', 'color', 'link', 'pw'].some(f => card[f] && card[f] !== k[f]); Object.assign(k, card); if (changed && this.peers.has(card.id)) this.peers.get(card.id).card = k; return changed }
     this.index.knows.push({ id: card.id, name: card.name, emoji: card.emoji, color: card.color, link: card.link, pw: card.pw || '' })
     return true
@@ -86,10 +126,16 @@ export class Library {
       for (const p of ps) {
         if (!p.index) continue
         if (p.index.me) this.learn({ ...p.index.me, link: p.card.link, pw: p.card.pw })
+        const g = p.index.group
+        if (g && this.index.group && g.id === this.index.group.id && g.admin && !this.index.group.admin) { this.index.group.admin = g.admin; learned = true }
         for (const k of p.index.knows || []) if (!this.index.knows.some(x => x.id === k.id) && this.learn(k)) more = learned = true
       }
       if (!more) break
     }
+    // retiré par quelqu'un du collectif : on ne le lit plus
+    const n = this.index.knows.length
+    this.index.knows = this.index.knows.filter(k => !this.isRemoved(k))
+    if (this.index.knows.length !== n) learned = true
     if (learned) await this.save()
     return learned
   }

@@ -43,13 +43,20 @@ async function boot() {
   try {
     step('', 'Ouverture de ton espace…')
     space = await openSpace(kind)
-    let index = null
-    try { index = await space.getJson(MINE + '!Moi.json') } catch { }
+    let index = null, readErr = null
+    // mon profil : dans pCloud ; sinon la copie de ce navigateur ; jamais repartir de zéro s'il existe
+    try { index = await space.getJson(MINE + '!Moi.json') } catch (e) { readErr = e; console.error('lecture de !Moi.json', e) }
+    const local = lsGet('maf:index', null)
+    if (!index && local && local.me && local.me.name) { index = local; if (space.kind === 'pcloud') setTimeout(() => lib && lib.save().catch(() => { }), 3000) }
+    if (!index && readErr && space.index && space.index[MINE + '!Moi.json']) { const x = new Error('profil illisible (' + (readErr.message || readErr) + '). Recharge la page dans un instant.'); x.code = 'NO_READ'; throw x }
+    if (readErr && index) setTimeout(() => toast('⚠️ Profil relu depuis ce navigateur (pCloud : ' + (readErr.message || readErr) + ')', 8000), 1500)
     lib = new Library(space, index || emptyIndex({ id: randomId(), name: '', emoji: '🎵', color: '#3e8ed0', instruments: '' }))
+    if (index && lib.forgetMyGhosts()) await lib.save()
     setupMsg('')
   } catch (e) {
     console.error(e)
     if (e.code === 'NO_ROOT') return setupFolder()
+    if (e.code === 'NO_READ') return step('', 'Lecture impossible de ton dossier pCloud : ' + e.message)
     if (kind === 'pcloud') forgetPcloud()
     return setupSpace('Connexion impossible : ' + (e.message || e))
   }
@@ -219,7 +226,7 @@ async function finishSetup() {
     localStorage.removeItem('maf:invite'); return startMain()
   }
   if (inv) return join(inv)
-  if (intent === 'new' || space.kind === 'demo') return join({ g: newGroup(lsGet('maf:groupName', '') || (space.kind === 'demo' ? 'Collectif démo' : '')), m: [] })
+  if (intent === 'new' || space.kind === 'demo') return join({ g: { ...newGroup(lsGet('maf:groupName', '') || (space.kind === 'demo' ? 'Collectif démo' : '')), admin: lib.me.id }, m: [] })
   setupStart()
 }
 async function join(inv) {
@@ -248,6 +255,7 @@ async function startMain(justJoined) {
   $('#groupTitle').textContent = lib.index.group.name
   $('#spaceInfo').textContent = space.kind === 'demo' ? 'mode démo · rien n’est partagé' : `pCloud · dossier « ${(space.root || {}).name || ''} »`
   if (space.kind === 'pcloud' && !lib.me.link) { try { await publishMyLink(); await lib.save() } catch (e) { toast('Lien de partage impossible : ' + e.message, 6000) } }
+  if (!lib.index.group.admin && !lib.index.knows.length) { lib.index.group.admin = lib.me.id; lib.save().catch(() => { }) }
   renderAll()
   relay = new Relay(lib.index.group, () => lib.me, onRelay)
   if (space.kind === 'pcloud') relay.start()
@@ -346,8 +354,19 @@ function renderMembers() {
     const idx = m.id === lib.me.id ? lib.index : p && p.index
     const st = m.id === lib.me.id ? 'c’est toi' : p && p.error ? '⚠️ dossier injoignable : ' + p.error : relay && relay.isOnline(m.id) ? '🟢 en ligne' : idx && idx.updated ? 'actif ' + ago(idx.updated) : '…'
     return `<article class="card member-card"><div class="head">${avatar(m)}<div><b>${esc(m.name)}</b><div class="muted">${esc((idx && idx.me && idx.me.instruments) || m.instruments || '')}</div></div></div>
-      <div class="meta">📄 ${counts.get(m.id) || 0} partition(s) · ${esc(st)}</div></article>`
+      <div class="meta">📄 ${counts.get(m.id) || 0} partition(s) · ${esc(st)}</div>
+      ${m.id === lib.adminId() ? '<div class="muted">👑 admin du collectif</div>' : ''}
+      ${m.id === lib.me.id || !lib.isAdmin() ? '' : `<div><button class="danger small" data-kick="${esc(m.id)}">🚪 Retirer du collectif</button></div>`}</article>`
   }).join('')
+  for (const b of $$('#list [data-kick]')) b.onclick = async () => {
+    const m = lib.member(b.dataset.kick); if (!m) return
+    if (!confirm(`Retirer ${m.name} du collectif ?
+
+Ses partitions et ses notes disparaissent chez tout le monde, et il ne sera plus réajouté.
+(Il garde ce qu'il a déjà pu lire. Pour lui couper vraiment l'accès à ton dossier, change aussi le mot de passe de ton lien pCloud.)`)) return
+    await lib.remove(m.id); relay && relay.send({ ev: 'index' })
+    toast(m.name + ' a été retiré du collectif'); renderAll()
+  }
 }
 
 // ---- ajouter des partitions ----
@@ -452,7 +471,7 @@ $('#btnMeSave').onclick = async () => {
 }
 $('#btnLeave').onclick = () => {
   if (!confirm('Oublier ce collectif et la connexion pCloud sur cet appareil ?')) return
-  localStorage.removeItem('maf:space'); forgetPcloud(); location.reload()
+  localStorage.removeItem('maf:space'); localStorage.removeItem('maf:index'); forgetPcloud(); location.reload()
 }
 
 // =====================================================================

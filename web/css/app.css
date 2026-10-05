@@ -10,6 +10,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { background: var(--bg3); border: 1px solid #3a3f4a; border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
 button:hover { border-color: #566; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.small { padding: 4px 9px; font-size: 13px; margin-top: 6px; }
 button.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
 button.on { outline: 2px solid var(--accent); }
 input, select, textarea { background: var(--bg); border: 1px solid #3a3f4a; border-radius: 8px; padding: 7px 10px; width: 100%; }
