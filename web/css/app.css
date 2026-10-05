@@ -125,8 +125,6 @@ button.link { background: none; border: none; color: var(--muted); padding: 6px 
 .pvb.loading { animation: spin-slow 1s linear infinite; }
 @keyframes spin-slow { to { transform: rotate(360deg); } }
 .tbl .c-art { text-align: left; min-width: 120px; max-width: 220px; color: #c4c8d0; }
-.tbl .c-art .art { cursor: pointer; border-bottom: 1px dotted transparent; }
-.tbl .c-art .art:hover { border-bottom-color: var(--accent); color: var(--fg); }
 .tbl .c-art i { font-style: normal; font-size: 11px; opacity: .8; }
 .tbl .c-cnt { color: var(--accent); font-weight: 700; width: 48px; }
 .tabs select { max-width: 220px; }
@@ -522,3 +520,8 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
   .tutowin { left: 0 !important; right: 0 !important; top: auto !important; bottom: 0; width: 100% !important; height: 62vh !important; max-width: none; border-radius: 16px 16px 0 0; resize: none; }
   .tw-bar { cursor: default; }
 }
+
+/* bandeau des filtres actifs */
+.filterbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg2)); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); font-size: 14px; }
+.filterbar button { margin-left: auto; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }

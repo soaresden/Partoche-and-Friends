@@ -429,10 +429,7 @@ function renderList() {
     L.innerHTML = why.length
       ? `<div class="empty">Aucun morceau ne correspond à ${why.join(', ')}.<br><button id="btnShowAll" class="primary" style="margin-top:10px">Tout réafficher</button></div>`
       : '<div class="empty">Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.</div>'
-    if ($('#btnShowAll')) $('#btnShowAll').onclick = () => {
-      $('#search').value = ''; if ($('#filterMember')) $('#filterMember').value = ''; if ($('#filterStatus')) $('#filterStatus').value = ''
-      if (tab === 'work') $('.tabs [data-tab=all]').click(); else renderList()
-    }
+    if ($('#btnShowAll')) $('#btnShowAll').onclick = clearFilters
     return
   }
   const cell = (p, m) => {
@@ -444,7 +441,8 @@ function renderList() {
   const arrow = k => sortBy.k === k ? `<i class="sort">${sortBy.d > 0 ? '▲' : '▼'}</i>` : ''
   const pv = previewing()
   L.classList.add('as-table')
-  L.innerHTML = `<div class="tbl-wrap"><table class="tbl">
+  const active = [val('#search') && `« ${esc(val('#search'))} »`, who && ('👤 ' + esc((lib.member(who) || {}).name || '')), fst && esc(($('#filterStatus').selectedOptions[0] || {}).textContent || '')].filter(Boolean)
+  L.innerHTML = (active.length ? `<div class="filterbar">🔎 Filtré : ${active.join(' · ')} — ${pieces.length} morceau${pieces.length > 1 ? 'x' : ''} <button id="btnClearFilters">✕ Tout réafficher</button></div>` : '') + `<div class="tbl-wrap"><table class="tbl">
     <thead><tr>
       <th class="c-pv"></th>
       <th class="c-title sortable" data-k="title">Titre ${arrow('title')}</th>
@@ -458,14 +456,15 @@ function renderList() {
       return `<tr data-i="${i}">
         <td class="c-pv"><button class="pvb${pv === v0.id ? ' playing' : ''}" data-pv="${esc(v0.id)}" title="Aperçu 30 s">${pv === v0.id ? '⏸' : '▶'}</button></td>
         <th class="c-title"><b>${esc(p.title)}</b></th>
-        <td class="c-art">${p.artist ? `<span class="art" data-art="${esc(p.artist)}" title="${p.guessed ? 'Deviné d’après le titre : clique la ligne pour corriger' : 'Filtrer sur cet artiste'}">${esc(p.artist)}${p.guessed ? ' <i>🔮</i>' : ''}</span>` : '<span class="none">?</span>'}</td>
+        <td class="c-art">${p.artist ? `<span class="art" data-art="${esc(p.artist)}" title="${p.guessed ? 'Deviné d’après le titre : ouvre la fiche pour corriger' : ''}">${esc(p.artist)}${p.guessed ? ' <i>🔮</i>' : ''}</span>` : '<span class="none">?</span>'}</td>
         ${mem.map(m => `<td class="c-mem${m.id === lib.me.id ? ' mine' : ''}" style="--c:${esc(m.color || '#888')}"${m.id === lib.me.id ? ' title="Clique pour choisir ton statut"' : ''}>${cell(p, m)}</td>`).join('')}
         <td class="c-cnt">${p.cnt || ''}</td>
         <td class="c-com" title="${last ? esc(last.member.name + ' : ' + last.text) : ''}">${p.comments.length || ''}</td>
       </tr>`
     }).join('')}</tbody></table></div>
-    <p class="legend">${pieces.length} morceau${pieces.length > 1 ? 'x' : ''} · 💡 envie · 🛠️ je bosse dessus · ✅ prêt · 📄 a la partition · 🔮 artiste deviné · clique un en-tête pour trier, ta case pour ton statut, un artiste pour le filtrer</p>`
+    <p class="legend">${pieces.length} morceau${pieces.length > 1 ? 'x' : ''} · 💡 envie · 🛠️ je bosse dessus · ✅ prêt · 📄 a la partition · 🔮 artiste deviné · clique un en-tête pour trier, ta case pour ton statut, une ligne pour la fiche</p>`
   if (keep) { const w = $('#list .tbl-wrap'); w.scrollTop = keep.t; w.scrollLeft = keep.l }
+  if ($('#btnClearFilters')) $('#btnClearFilters').onclick = clearFilters
   for (const th of $$('#list th.sortable')) th.onclick = () => {
     sortBy = sortBy.k === th.dataset.k ? { k: th.dataset.k, d: -sortBy.d } : { k: th.dataset.k, d: th.dataset.k === 'cnt' || th.dataset.k === 'com' || th.dataset.k.startsWith('m:') ? -1 : 1 }
     lsSet('maf:sort', sortBy); renderList()
@@ -473,10 +472,14 @@ function renderList() {
   for (const tr of $$('#list tbody tr')) tr.onclick = e => {
     const p = pieces[+tr.dataset.i]
     const pvb = e.target.closest('.pvb'); if (pvb) return playPreview(p, pvb)
-    const art = e.target.closest('.art'); if (art && !e.target.closest('i')) { $('#search').value = art.dataset.art; return renderList() }
     const mine = e.target.closest('td.mine'); if (mine) return statusMenu(p, mine)
     openPiece(p)
   }
+}
+
+function clearFilters() {
+  $('#search').value = ''; if ($('#filterMember')) $('#filterMember').value = ''; if ($('#filterStatus')) $('#filterStatus').value = ''
+  if (tab === 'work') $('.tabs [data-tab=all]').click(); else renderList()
 }
 
 // ---- menu de statut sur ma case : un clic, je choisis ----
