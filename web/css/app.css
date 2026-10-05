@@ -440,10 +440,13 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 .sppaf { font-size: 13px; color: var(--muted); animation: sp-up .6s .6s both; }
 .sppaf b { color: #3fd17a; font-size: 15px; }
 .sppaf span { color: #ffd166; display: inline-block; animation: sp-up .4s 1.7s both; }
-.sproad { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: min(24vh, 170px); overflow: hidden; }
+.sproad { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: var(--road); overflow: hidden; display: block; }
+/* la route a sa place réservée en bas : le groupe et le titre restent toujours au-dessus */
+.splash { --road: clamp(120px, 26vh, 220px); padding-bottom: calc(var(--road) + 8px); box-sizing: border-box; }
+.splash .spstage { width: min(400px, 92vw, calc((100vh - var(--road) - 150px) * 360 / 230)); }
 .sproad g, .sproad path { transform-box: fill-box; }
 .sp-dashes { animation: sp-dash .5s linear infinite; }
-.sp-car { animation: sp-drive 2.4s cubic-bezier(.45,.05,.55,.95) .3s infinite; transform: translateX(900px); }
+.sp-car { animation: sp-drive 2.4s cubic-bezier(.45,.05,.55,.95) .3s infinite; transform: translateX(1900px); }
 .sp-wind { animation: sp-blink .2s linear infinite; }
 .sp-tongue { transform-origin: 50% 0; animation: sp-pant .32s ease-in-out infinite alternate; }
 .sp-tail { transform-origin: 100% 100%; animation: sp-wag .25s ease-in-out infinite alternate; }
@@ -451,7 +454,7 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 .sp-ear.r { transform-origin: 30% 10%; }
 .sp-dog { animation: sp-hop 2.4s ease-in-out .3s infinite; }
 @keyframes sp-dash { to { transform: translateX(-48px); } }
-@keyframes sp-drive { 0% { transform: translateX(900px); } 70%, 100% { transform: translateX(-260px); } }
+@keyframes sp-drive { 0% { transform: translateX(1900px); } 72%, 100% { transform: translateX(-1300px); } }
 @keyframes sp-blink { 50% { opacity: .2; } }
 @keyframes sp-pant { from { transform: scaleY(.8); } to { transform: scaleY(1.25); } }
 @keyframes sp-wag { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
