@@ -501,3 +501,21 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 .scan-frame { position: relative; width: min(70vw, 300px); aspect-ratio: 1; border: 4px solid #3fd17a; border-radius: 22px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
 .scan-help { position: absolute; top: 18px; left: 16px; right: 16px; text-align: center; color: #fff; font-weight: 600; text-shadow: 0 2px 6px #000; margin: 0; }
 .scan-close { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; border: 1px solid #fff6; font-size: 16px; }
+
+/* tuto de Paf en fenêtre flottante : déplaçable (barre de titre) et redimensionnable (coin) */
+.tutowin { position: fixed; z-index: 150; right: 20px; bottom: 20px; width: 400px; height: min(620px, calc(100vh - 40px)); min-width: 300px; min-height: 260px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px);
+  display: flex; flex-direction: column; background: var(--bg2); border: 1px solid #3a3f4a; border-top: 4px solid var(--accent); border-radius: 14px; overflow: hidden; resize: both;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55); animation: tw-in .25s ease; }
+.tutowin.dragging { opacity: .92; user-select: none; }
+.tutowin.dragging iframe { pointer-events: none; }
+.tutowin.flash { animation: tw-flash .4s; }
+.tw-bar { display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 12px; background: var(--bg3); cursor: move; touch-action: none; user-select: none; }
+.tw-title { flex: 1; font-weight: 700; font-size: 14px; }
+.tw-btn { display: inline-grid; place-items: center; width: 30px; height: 28px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid #3a3f4a; color: var(--fg); text-decoration: none; font-size: 14px; cursor: pointer; }
+.tutowin iframe { flex: 1; border: 0; width: 100%; background: var(--bg); }
+@keyframes tw-in { from { transform: translateY(16px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes tw-flash { 50% { box-shadow: 0 0 0 4px var(--accent), 0 18px 50px rgba(0,0,0,.55); } }
+@media (max-width: 700px) {
+  .tutowin { left: 0 !important; right: 0 !important; top: auto !important; bottom: 0; width: 100% !important; height: 62vh !important; max-width: none; border-radius: 16px 16px 0 0; resize: none; }
+  .tw-bar { cursor: default; }
+}

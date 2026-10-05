@@ -86,6 +86,13 @@ details summary { cursor: pointer; font-weight: 600; }
 .foot { text-align: center; color: var(--muted); margin-top: 40px; font-size: 14px; }
 @media (max-width: 560px) { .choices { margin-left: 0; } .step { padding: 14px 12px 14px 54px; } .step .n { left: 10px; } .step h3 { margin-right: 0; margin-top: 30px; } .hero h1 { font-size: 18px; } .say .dog { width: 44px; height: 44px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+/* dans la fenêtre flottante de l'appli */
+.embed .hero { padding: 10px 12px; }
+.embed .hero img, .embed .hero p, .embed .foot { display: none; }
+.embed .hero h1 { font-size: 16px; }
+.embed .wrap { padding-left: 12px; padding-right: 12px; }
+.embed .choices { margin-left: 0; grid-template-columns: 1fr; }
+.embed .say .dog { width: 40px; height: 40px; }
 </style>
 </head>
 <body>
@@ -143,6 +150,7 @@ const DOG = `<svg class="dog" viewBox="-70 -70 140 140" aria-hidden="true">
   <path class="tongue" d="M-8 31h16v22a8 8 0 0 1-16 0z" fill="#ff5c8a" stroke="#c23a63" stroke-width="2.5"/></svg>`
 
 const $ = s => document.querySelector(s)
+if (new URLSearchParams(location.search).has('embed')) document.body.classList.add('embed')
 const chat = $('#chat'), plan = $('#plan')
 let A = {}
 

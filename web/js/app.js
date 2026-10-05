@@ -5,6 +5,7 @@ import { Library, emptyIndex, STATUS, normTitle } from './library.js'
 import { Viewer, scoreInfo } from './viewer.js'
 import { togglePreview, stopPreview, previewing } from './preview.js'
 import { scanQR } from './scan.js'
+import { openTuto, closeTuto, tutoOpen } from './tutowin.js'
 import { lsGet, lsSet } from './partoche/store.js'
 
 const $ = s => document.querySelector(s)
@@ -775,11 +776,21 @@ addEventListener('popstate', () => {
   const d = [...document.querySelectorAll('dialog[open]')].pop()
   if (d) { d.close(); return navArm() }
   if ($('#stMenu')) { closeStatusMenu(); return navArm() }
+  if (tutoOpen()) { closeTuto(); return navArm() }
   if (!$('#viewer').hidden) { $('#vBack').click(); return navArm() }
   if (!$('#main').hidden && tab !== 'all') { $('.tabs [data-tab=all]').click(); return navArm() }
   // rien d'ouvert : on laisse partir (2e appui = on quitte)
 })
 navGuard()
+
+// tous les liens vers le tuto l'ouvrent en fenêtre flottante (le ↗ de la fenêtre l'ouvre en grand)
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="tuto.html"]')
+  if (!a || a.closest('.tutowin') || e.ctrlKey || e.metaKey) return
+  e.preventDefault()
+  if ($('#meDlg').open) $('#meDlg').close()
+  openTuto(); navGuard()
+})
 
 // ouverture animée : ~3 s (ou un clic), puis l'appli
 {
