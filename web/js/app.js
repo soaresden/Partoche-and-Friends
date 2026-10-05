@@ -379,7 +379,7 @@ function renderAll() { paintDots(); renderList() }
 for (const b of $$('.tabs [data-tab]')) b.onclick = () => { tab = b.dataset.tab; $$('.tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b)); renderList() }
 $('#search').oninput = () => renderList()
 $('#filterMember').onchange = () => renderList()
-$('#filterStatus').onchange = () => renderList()
+if ($('#filterStatus')) $('#filterStatus').onchange = () => renderList()
 
 // =====================================================================
 //  LE TABLEAU : ▶ aperçu · Titre · Artiste · une colonne par personne · 👥 · 💬
@@ -393,7 +393,8 @@ function renderList() {
   if (tab === 'members') return renderMembers()
   // garder la position de défilement (le tableau ne « remonte » plus après un changement)
   const oldWrap = $('#list .tbl-wrap'), keep = oldWrap ? { t: oldWrap.scrollTop, l: oldWrap.scrollLeft } : null
-  const q = normTitle($('#search').value), who = $('#filterMember').value, fst = $('#filterStatus').value
+  const val = s => { const e = $(s); return e ? e.value : '' }   // page et script d'âges différents (cache) : pas de plantage
+  const q = normTitle(val('#search')), who = val('#filterMember'), fst = val('#filterStatus')
   const mem = lib.members()
   let pieces = lib.pieces()
   for (const p of pieces) { p.cnt = p.work.filter(w => w.status).length; p.mineW = p.work.find(w => w.member.id === lib.me.id) || null }
@@ -420,7 +421,14 @@ function renderList() {
     return r * d || txt(x.title, y.title)
   })
   if (!pieces.length) {
-    L.innerHTML = `<div class="empty">${tab === 'work' || fst ? 'Aucun morceau ne correspond.' : 'Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.'}</div>`
+    const why = [val('#search') && `la recherche « ${esc(val('#search'))} »`, who && 'le filtre par personne', fst && 'le filtre de statut', tab === 'work' && 'l’onglet Chantiers'].filter(Boolean)
+    L.innerHTML = why.length
+      ? `<div class="empty">Aucun morceau ne correspond à ${why.join(', ')}.<br><button id="btnShowAll" class="primary" style="margin-top:10px">Tout réafficher</button></div>`
+      : '<div class="empty">Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.</div>'
+    if ($('#btnShowAll')) $('#btnShowAll').onclick = () => {
+      $('#search').value = ''; if ($('#filterMember')) $('#filterMember').value = ''; if ($('#filterStatus')) $('#filterStatus').value = ''
+      if (tab === 'work') $('.tabs [data-tab=all]').click(); else renderList()
+    }
     return
   }
   const cell = (p, m) => {
@@ -558,7 +566,8 @@ function openPiece(p) { piece = p; renderPiece(); if (!$('#pieceDlg').open) $('#
 $('#pdStatus').innerHTML = '<option value="">—</option>' + Object.entries(STATUS).map(([k, s]) => `<option value="${k}">${s.icon} ${s.label}</option>`).join('')
 
 function renderPiece() {
-  piece = lib.pieces().find(p => p.key === piece.key) || piece
+  const ids = new Set(piece.versions.map(v => v.id))
+  piece = lib.pieces().find(p => p.key === piece.key) || lib.pieces().find(p => p.versions.some(v => ids.has(v.id))) || piece
   $('#pdTitle').textContent = piece.title
   // titre / artiste : corrigeables (le titre seulement si la partition est chez moi)
   const hasIt = piece.versions.some(v => v.mine)
