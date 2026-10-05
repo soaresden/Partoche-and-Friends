@@ -348,6 +348,8 @@ function renderList() {
 }
 
 function renderMembers() {
+  // collectif créé avant les admins, avec déjà plusieurs membres : son créateur se déclare (le premier gagne)
+  const claim = !lib.adminId() ? `<article class="card member-card"><div>👑 Ce collectif n'a pas encore d'admin.</div><div class="muted">C'est toi qui l'as créé ? Déclare-toi admin : tu pourras retirer des membres.</div><div><button class="small primary" id="btnClaimAdmin">👑 Je suis le créateur, devenir admin</button></div></article>` : ''
   const counts = new Map(); for (const s of lib.scores()) counts.set(s.owner.id, (counts.get(s.owner.id) || 0) + 1)
   $('#list').innerHTML = lib.members().map(m => {
     const p = m.id === lib.me.id ? null : lib.peers.get(m.id)
@@ -357,7 +359,11 @@ function renderMembers() {
       <div class="meta">📄 ${counts.get(m.id) || 0} partition(s) · ${esc(st)}</div>
       ${m.id === lib.adminId() ? '<div class="muted">👑 admin du collectif</div>' : ''}
       ${m.id === lib.me.id || !lib.isAdmin() ? '' : `<div><button class="danger small" data-kick="${esc(m.id)}">🚪 Retirer du collectif</button></div>`}</article>`
-  }).join('')
+  }).join('') + claim
+  if ($('#btnClaimAdmin')) $('#btnClaimAdmin').onclick = async () => {
+    if (!confirm('Tu confirmes que c’est toi qui as créé « ' + lib.index.group.name + ' » ?')) return
+    lib.index.group.admin = lib.me.id; await lib.save(); relay && relay.send({ ev: 'index' }); renderAll()
+  }
   for (const b of $$('#list [data-kick]')) b.onclick = async () => {
     const m = lib.member(b.dataset.kick); if (!m) return
     if (!confirm(`Retirer ${m.name} du collectif ?
