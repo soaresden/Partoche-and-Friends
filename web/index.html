@@ -244,8 +244,18 @@
     <button data-tab="all" class="on">📚 Bibliothèque</button>
     <button data-tab="work">🛠️ Chantiers</button>
     <button data-tab="members">👥 Membres</button>
-    <input id="search" type="search" placeholder="Chercher un morceau…">
+    <input id="search" type="search" placeholder="Chercher un titre, un artiste…">
     <select id="filterMember"><option value="">Tout le monde</option></select>
+    <select id="filterStatus" title="Filtrer par statut">
+      <option value="">Tous les morceaux</option>
+      <option value="any">👥 Quelqu'un est dessus</option>
+      <option value="mine">🙋 Ceux que j'ai marqués</option>
+      <option value="unset">❔ Pas encore marqués par moi</option>
+      <option value="free">💤 Personne dessus</option>
+      <option value="envie">💡 Envie</option>
+      <option value="encours">🛠️ En cours</option>
+      <option value="pret">✅ Prêt</option>
+    </select>
   </nav>
   <main id="list" class="list"></main>
   <input type="file" id="fileIn" accept=".mscz" multiple hidden>
@@ -255,6 +265,11 @@
 <dialog id="pieceDlg">
   <form method="dialog" class="dlg-x"><button>✕</button></form>
   <h2 id="pdTitle"></h2>
+  <div class="meta-edit">
+    <label>Titre <input id="pdTitleIn"></label>
+    <label>Artiste <span id="pdGuess" class="muted"></span><input id="pdArtistIn" placeholder="inconnu"></label>
+    <button id="pdMetaSave" class="primary" hidden>Enregistrer</button>
+  </div>
   <div id="pdVersions"></div>
   <h3>Qui bosse dessus</h3>
   <div id="pdWork" class="work"></div>

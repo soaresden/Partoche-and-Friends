@@ -1177,7 +1177,9 @@ export function scoreInfo(bytes, name) {
     const mf = new MsczFile(bytes, name)
     const meta = k => { const m = mf.xml.match(new RegExp(`<metaTag name="${k}">([^<]*)</metaTag>`)); return m ? m[1].trim() : '' }
     const box = mf.xml.match(/<Text>\s*<style>[Tt]itle<\/style>\s*<text>([\s\S]*?)<\/text>/)
-    const title = meta('workTitle') || (box ? box[1].replace(/<[^>]*>/g, '').trim() : '')
+    // titre sur plusieurs lignes (« Bad Romance<br/>Poker Face Medley ») : les lignes séparées par « / »
+    const clean = t => t.replace(/<br\s*\/?>|&#10;|\n/gi, ' / ').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/\s*\/\s*(\/\s*)+/g, ' / ').replace(/\s+/g, ' ').replace(/^\s*\/\s*|\s*\/\s*$/g, '').trim()
+    const title = clean(meta('workTitle') || (box ? box[1] : ''))
     return { title, composer: meta('composer'), parts: mf.parts.map(p => p.name) }
   } catch { return { title: '', composer: '', parts: [] } }
 }

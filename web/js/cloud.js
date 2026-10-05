@@ -132,14 +132,21 @@ class PcloudSpace {
     this.ids['MSCZ/'] = await mk(this.root.folderid, 'MSCZ')
     this.ids['Friends/'] = await mk(this.root.folderid, 'Friends')
     this.ids['Friends/Notes/'] = await mk(this.ids['Friends/'], 'Notes')
+    // Settings/ de Partoche (tags « À faire / En cours / Maîtrisé ») : lu seulement, jamais créé ni écrit
+    try {
+      const top = (await this.call('listfolder', { folderid: this.root.folderid })).metadata
+      const st = (top.contents || []).find(x => x.isfolder && x.name === 'Settings')
+      if (st) this.ids['Settings/'] = st.folderid
+    } catch { }
     await this.refresh()
     return this
   }
   // mes fichiers utiles : { 'MSCZ/x.mscz': meta, 'Friends/!Moi.json': meta, 'Friends/Notes/…': meta }
   async refresh() {
     const idx = {}
-    for (const pre of ['MSCZ/', 'Friends/']) {
-      const d = await this.call('listfolder', { folderid: this.ids[pre], recursive: 1 })
+    for (const pre of ['MSCZ/', 'Friends/', 'Settings/']) {
+      if (!this.ids[pre]) continue
+      const d = await this.call('listfolder', { folderid: this.ids[pre], recursive: pre === 'Settings/' ? 0 : 1 })
       const walk = (f, p) => { for (const c of f.contents || []) c.isfolder ? walk(c, p + c.name + '/') : (idx[p + c.name] = c) }
       walk(d.metadata, pre)
     }

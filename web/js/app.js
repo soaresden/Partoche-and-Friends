@@ -3,6 +3,7 @@ import { openSpace, takeOAuthRedirect, hasPcloud, pcloudLoginUrl, forgetPcloud, 
 import { newGroup, readInvite, inviteUrl, randomId, Relay, makeDeviceLink, readDeviceLink, openDeviceLink } from './group.js'
 import { Library, emptyIndex, STATUS, normTitle } from './library.js'
 import { Viewer, scoreInfo } from './viewer.js'
+import { togglePreview, stopPreview, previewing } from './preview.js'
 import { lsGet, lsSet } from './partoche/store.js'
 
 const $ = s => document.querySelector(s)
@@ -330,8 +331,14 @@ async function startMain(justJoined) {
 async function refresh(force) {
   $('#btnRefresh').classList.add('spin')
   try { await lib.refresh(force) } catch (e) { console.warn(e) }
+  // tags de Partoche (À faire / En cours / Maîtrisé) -> mon statut, partagé avec le groupe
+  try { if (await lib.importPartocheTags()) relay && relay.send({ ev: 'index' }) } catch (e) { console.warn('tags Partoche', e) }
   $('#btnRefresh').classList.remove('spin')
   renderAll()
+  // artistes manquants : devinés en arrière-plan, le tableau se met à jour au fur et à mesure
+  let t = 0
+  lib.guessMissing(() => { clearTimeout(t); t = setTimeout(() => { if (!$('#stMenu')) renderList() }, 1200) })
+    .then(() => relay && relay.send({ ev: 'index' })).catch(e => console.warn('artistes', e))
 }
 $('#btnRefresh').onclick = () => refresh(true)
 setInterval(() => { if (!document.hidden && !$('#main').hidden) refresh(false) }, 60000)
@@ -361,54 +368,130 @@ function renderAll() { paintDots(); renderList() }
 for (const b of $$('.tabs [data-tab]')) b.onclick = () => { tab = b.dataset.tab; $$('.tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b)); renderList() }
 $('#search').oninput = () => renderList()
 $('#filterMember').onchange = () => renderList()
+$('#filterStatus').onchange = () => renderList()
 
+// =====================================================================
+//  LE TABLEAU : ▶ aperçu · Titre · Artiste · une colonne par personne · 👥 · 💬
+//  tri en cliquant sur un en-tête, filtres, menu de statut sur ma case
+// =====================================================================
+const RANK = { pret: 3, encours: 2, envie: 1 }
+let sortBy = lsGet('maf:sort', { k: 'title', d: 1 })
 function renderList() {
   const L = $('#list')
   L.classList.remove('as-table')
   if (tab === 'members') return renderMembers()
-  const q = normTitle($('#search').value), who = $('#filterMember').value
+  // garder la position de défilement (le tableau ne « remonte » plus après un changement)
+  const oldWrap = $('#list .tbl-wrap'), keep = oldWrap ? { t: oldWrap.scrollTop, l: oldWrap.scrollLeft } : null
+  const q = normTitle($('#search').value), who = $('#filterMember').value, fst = $('#filterStatus').value
+  const mem = lib.members()
   let pieces = lib.pieces()
-  if (q) pieces = pieces.filter(p => normTitle(p.title + ' ' + p.versions.map(v => v.composer).join(' ')).includes(q))
+  for (const p of pieces) { p.cnt = p.work.filter(w => w.status).length; p.mineW = p.work.find(w => w.member.id === lib.me.id) || null }
+  if (q) pieces = pieces.filter(p => normTitle(p.title + ' ' + p.artist + ' ' + p.versions.map(v => v.composer).join(' ')).includes(q))
   if (who) pieces = pieces.filter(p => p.versions.some(v => v.owner.id === who) || p.work.some(w => w.member.id === who))
-  if (tab === 'work') pieces = pieces.filter(p => p.work.length).sort((a, b) => Math.max(...b.work.map(w => w.at || 0)) - Math.max(...a.work.map(w => w.at || 0)))
+  if (tab === 'work' || fst === 'any') pieces = pieces.filter(p => p.cnt)
+  if (fst === 'mine') pieces = pieces.filter(p => p.mineW && p.mineW.status)
+  if (fst === 'free') pieces = pieces.filter(p => !p.cnt)
+  if (fst === 'unset') pieces = pieces.filter(p => !(p.mineW && p.mineW.status))
+  if (fst && RANK[fst]) pieces = pieces.filter(p => p.work.some(w => w.status === fst))
+  // tri
+  const d = sortBy.d || 1, txt = (x, y) => (x || '').localeCompare(y || '', 'fr', { sensitivity: 'base' })
+  const mRank = (p, id) => { const w = p.work.find(x => x.member.id === id); return (w && RANK[w.status] || 0) + (p.versions.some(v => v.owner.id === id) ? 0.5 : 0) }
+  pieces.sort((x, y) => {
+    if (sortBy.k === 'artist') {   // sans artiste : toujours à la fin
+      if (!x.artist !== !y.artist) return x.artist ? -1 : 1
+      return (txt(x.artist, y.artist) || txt(x.title, y.title)) * d
+    }
+    let r = 0
+    if (sortBy.k === 'title') r = txt(x.title, y.title)
+    else if (sortBy.k === 'cnt') r = x.cnt - y.cnt
+    else if (sortBy.k === 'com') r = x.comments.length - y.comments.length
+    else if (sortBy.k.startsWith('m:')) r = mRank(x, sortBy.k.slice(2)) - mRank(y, sortBy.k.slice(2))
+    return r * d || txt(x.title, y.title)
+  })
   if (!pieces.length) {
-    L.innerHTML = `<div class="empty">${tab === 'work' ? 'Personne ne bosse encore sur un morceau.<br>Ouvre une partition et indique « Je bosse dessus ».' : 'Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.'}</div>`
+    L.innerHTML = `<div class="empty">${tab === 'work' || fst ? 'Aucun morceau ne correspond.' : 'Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.'}</div>`
     return
   }
-  // tableau : une ligne par morceau, une colonne par personne (moi en premier)
-  const mem = lib.members()
-  const STEPS_ST = ['', 'envie', 'encours', 'pret']
   const cell = (p, m) => {
-    const vs = p.versions.filter(v => v.owner.id === m.id)
-    const w = p.work.find(x => x.member.id === m.id) || {}
-    const st = STATUS[w.status]
-    const has = vs.length ? '<span class="has" title="a la partition dans son dossier">📄</span>' : ''
-    const inner = (st ? `<span class="st" title="${esc(st.label)}">${st.icon}</span>` : '') + has + (w.part ? `<small>${esc(w.part)}</small>` : '')
+    const w = p.work.find(x => x.member.id === m.id) || {}, st = STATUS[w.status]
+    const has = p.versions.some(v => v.owner.id === m.id) ? '<span class="has" title="a la partition dans son dossier">📄</span>' : ''
+    const inner = (st ? `<span class="st" title="${esc(st.label)}${w.src === 'partoche' ? ' (tag Partoche)' : ''}">${st.icon}</span>` : '') + has + (w.part ? `<small>${esc(w.part)}</small>` : '')
     return inner || '<span class="none">·</span>'
   }
+  const arrow = k => sortBy.k === k ? `<i class="sort">${sortBy.d > 0 ? '▲' : '▼'}</i>` : ''
+  const pv = previewing()
   L.classList.add('as-table')
   L.innerHTML = `<div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th class="c-title">Morceau</th>${mem.map(m => `<th class="c-mem" style="--c:${esc(m.color || '#888')}">${avatar(m)}<span>${esc(m.id === lib.me.id ? 'Moi' : m.name)}</span></th>`).join('')}<th class="c-com">💬</th></tr></thead>
+    <thead><tr>
+      <th class="c-pv"></th>
+      <th class="c-title sortable" data-k="title">Titre ${arrow('title')}</th>
+      <th class="c-art sortable" data-k="artist">Artiste ${arrow('artist')}</th>
+      ${mem.map(m => `<th class="c-mem sortable" data-k="m:${esc(m.id)}" style="--c:${esc(m.color || '#888')}">${avatar(m)}<span>${esc(m.id === lib.me.id ? 'Moi' : m.name)} ${arrow('m:' + m.id)}</span></th>`).join('')}
+      <th class="c-cnt sortable" data-k="cnt" title="Nombre de personnes sur le morceau">👥 ${arrow('cnt')}</th>
+      <th class="c-com sortable" data-k="com" title="Messages">💬 ${arrow('com')}</th>
+    </tr></thead>
     <tbody>${pieces.map((p, i) => {
-      const comp = p.versions.find(v => v.composer)
-      const last = p.comments[p.comments.length - 1]
+      const last = p.comments[p.comments.length - 1], v0 = p.versions[0]
       return `<tr data-i="${i}">
-        <th class="c-title"><b>${esc(p.title)}</b>${comp ? `<small>${esc(comp.composer)}</small>` : ''}</th>
-        ${mem.map(m => `<td class="c-mem${m.id === lib.me.id ? ' mine' : ''}" style="--c:${esc(m.color || '#888')}"${m.id === lib.me.id ? ' title="Clique pour changer ton statut"' : ''}>${cell(p, m)}</td>`).join('')}
+        <td class="c-pv"><button class="pvb${pv === v0.id ? ' playing' : ''}" data-pv="${esc(v0.id)}" title="Aperçu 30 s">${pv === v0.id ? '⏸' : '▶'}</button></td>
+        <th class="c-title"><b>${esc(p.title)}</b></th>
+        <td class="c-art">${p.artist ? `<span class="art" data-art="${esc(p.artist)}" title="${p.guessed ? 'Deviné d’après le titre : clique la ligne pour corriger' : 'Filtrer sur cet artiste'}">${esc(p.artist)}${p.guessed ? ' <i>🔮</i>' : ''}</span>` : '<span class="none">?</span>'}</td>
+        ${mem.map(m => `<td class="c-mem${m.id === lib.me.id ? ' mine' : ''}" style="--c:${esc(m.color || '#888')}"${m.id === lib.me.id ? ' title="Clique pour choisir ton statut"' : ''}>${cell(p, m)}</td>`).join('')}
+        <td class="c-cnt">${p.cnt || ''}</td>
         <td class="c-com" title="${last ? esc(last.member.name + ' : ' + last.text) : ''}">${p.comments.length || ''}</td>
       </tr>`
     }).join('')}</tbody></table></div>
-    <p class="legend">💡 envie · 🛠️ je bosse dessus · ✅ prêt · 📄 a la partition · clique sur ta colonne pour changer ton statut, sur le reste pour ouvrir la fiche</p>`
-  for (const tr of $$('#list tbody tr')) tr.onclick = async e => {
+    <p class="legend">${pieces.length} morceau${pieces.length > 1 ? 'x' : ''} · 💡 envie · 🛠️ je bosse dessus · ✅ prêt · 📄 a la partition · 🔮 artiste deviné · clique un en-tête pour trier, ta case pour ton statut, un artiste pour le filtrer</p>`
+  if (keep) { const w = $('#list .tbl-wrap'); w.scrollTop = keep.t; w.scrollLeft = keep.l }
+  for (const th of $$('#list th.sortable')) th.onclick = () => {
+    sortBy = sortBy.k === th.dataset.k ? { k: th.dataset.k, d: -sortBy.d } : { k: th.dataset.k, d: th.dataset.k === 'cnt' || th.dataset.k === 'com' || th.dataset.k.startsWith('m:') ? -1 : 1 }
+    lsSet('maf:sort', sortBy); renderList()
+  }
+  for (const tr of $$('#list tbody tr')) tr.onclick = e => {
     const p = pieces[+tr.dataset.i]
-    if (e.target.closest('td.mine')) {   // ma colonne : statut suivant, sans ouvrir la fiche
-      const w = p.work.find(x => x.member.id === lib.me.id) || {}
-      const next = STEPS_ST[(STEPS_ST.indexOf(w.status || '') + 1) % STEPS_ST.length]
-      await lib.setWork(w.score || p.versions[0].id, { status: next, part: w.part || '' })
-      relay && relay.send({ ev: 'index' }); renderList(); return
-    }
+    const pvb = e.target.closest('.pvb'); if (pvb) return playPreview(p, pvb)
+    const art = e.target.closest('.art'); if (art && !e.target.closest('i')) { $('#search').value = art.dataset.art; return renderList() }
+    const mine = e.target.closest('td.mine'); if (mine) return statusMenu(p, mine)
     openPiece(p)
   }
+}
+
+// ---- menu de statut sur ma case : un clic, je choisis ----
+function statusMenu(p, td) {
+  closeStatusMenu()
+  const w = p.mineW || {}
+  const m = document.createElement('div'); m.id = 'stMenu'; m.className = 'stmenu'
+  m.innerHTML = `<div class="stm-title">${esc(p.title)}</div>
+    ${[['', '—', 'Rien'], ...Object.entries(STATUS).map(([k, s]) => [k, s.icon, s.label])].map(([k, i, l]) => `<button data-st="${k}" class="${(w.status || '') === k ? 'on' : ''}"><span>${i}</span>${esc(l)}</button>`).join('')}
+    <label>Ma partie <input id="stmPart" value="${esc(w.part || '')}" placeholder="ex. Basse, Violon 1…"></label>
+    <button class="stm-open">Ouvrir la fiche →</button>`
+  document.body.appendChild(m)
+  const r = td.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight
+  m.style.left = Math.max(8, Math.min(innerWidth - mw - 8, r.left + r.width / 2 - mw / 2)) + 'px'
+  m.style.top = (r.bottom + mh + 8 > innerHeight ? Math.max(8, r.top - mh - 6) : r.bottom + 6) + 'px'
+  const save = async patch => {
+    await lib.setWork((w.score) || p.versions[0].id, { status: w.status || '', part: w.part || '', ...patch })
+    relay && relay.send({ ev: 'index' }); renderList()
+  }
+  for (const b of m.querySelectorAll('[data-st]')) b.onclick = async () => { closeStatusMenu(); await save({ status: b.dataset.st, part: $('#stmPart') ? $('#stmPart').value.trim() : (w.part || '') }) }
+  const part = m.querySelector('#stmPart')
+  part.onkeydown = async e => { if (e.key === 'Enter') { const v = part.value.trim(); closeStatusMenu(); await save({ part: v }) } if (e.key === 'Escape') closeStatusMenu() }
+  m.querySelector('.stm-open').onclick = () => { closeStatusMenu(); openPiece(p) }
+  setTimeout(() => document.addEventListener('pointerdown', outside, true), 0)
+}
+function outside(e) { const m = $('#stMenu'); if (m && !m.contains(e.target)) closeStatusMenu() }
+function closeStatusMenu() { const m = $('#stMenu'); if (m) m.remove(); document.removeEventListener('pointerdown', outside, true) }
+
+// ---- aperçu 30 s ----
+function playPreview(p, btn) {
+  const v = p.versions[0]
+  togglePreview(v.id, v.name, () => lib.bytes(v), (state, pr, st) => {
+    const b = $(`#list [data-pv="${CSS.escape(v.id)}"]`) || btn
+    b.classList.toggle('loading', state === 'loading'); b.classList.toggle('playing', state === 'playing')
+    b.textContent = state === 'playing' ? '⏸' : state === 'loading' ? '…' : '▶'
+    b.style.setProperty('--p', pr || 0)
+    if (state === 'playing' && pr === 0 && st) toast(`♪ ${p.title} — ${st.how}`, 2500)
+  }).catch(() => toast('Aperçu impossible pour cette partition'))
 }
 
 function renderMembers() {
@@ -466,6 +549,12 @@ $('#pdStatus').innerHTML = '<option value="">—</option>' + Object.entries(STAT
 function renderPiece() {
   piece = lib.pieces().find(p => p.key === piece.key) || piece
   $('#pdTitle').textContent = piece.title
+  // titre / artiste : corrigeables (le titre seulement si la partition est chez moi)
+  const hasIt = piece.versions.some(v => v.mine)
+  $('#pdTitleIn').value = piece.title; $('#pdTitleIn').disabled = !hasIt; $('#pdTitleIn').title = hasIt ? '' : 'Seul celui qui a la partition peut changer le titre'
+  $('#pdArtistIn').value = piece.artist || ''
+  $('#pdGuess').textContent = piece.guessed ? '🔮 deviné, à vérifier' : ''
+  $('#pdMetaSave').hidden = true
   $('#pdVersions').innerHTML = piece.versions.map((v, i) => `<div class="version">${avatar(v.owner)}
       <div class="grow"><b>Chez ${esc(v.owner.name)}</b><div class="muted">${esc(v.name)}${v.size ? ' · ' + Math.round(v.size / 1024) + ' Ko' : ''}</div></div>
       <button data-open="${i}" class="primary">Ouvrir</button><button data-dl="${i}" title="Télécharger">⬇</button>${v.mine ? `<button data-rm="${i}" title="Retirer">🗑</button>` : piece.versions.some(x => x.mine) ? '' : `<button data-cp="${i}" title="Copier dans mon dossier MSCZ">📥 Copier chez moi</button>`}</div>`).join('') +
@@ -502,6 +591,13 @@ async function saveMyWork() {
   const id = (piece.work.find(x => x.member.id === lib.me.id) || {}).score || rootOf(piece).id
   await lib.setWork(id, { status: $('#pdStatus').value, part: $('#pdPart').value.trim() })
   relay && relay.send({ ev: 'index' }); renderAll(); renderPiece()
+}
+for (const id of ['#pdTitleIn', '#pdArtistIn']) $(id).oninput = () => { $('#pdMetaSave').hidden = false }
+$('#pdMetaSave').onclick = async () => {
+  const t = $('#pdTitleIn').value.trim(), a = $('#pdArtistIn').value.trim()
+  if (!$('#pdTitleIn').disabled && t && t !== piece.title) await lib.setTitle(piece, t)
+  if (a !== (piece.artist || '') || piece.guessed) await lib.setArtist({ ...piece, title: t || piece.title }, a)
+  relay && relay.send({ ev: 'index' }); toast('Enregistré'); renderAll(); renderPiece()
 }
 $('#pdStatus').onchange = saveMyWork
 $('#pdPart').onchange = saveMyWork
@@ -565,6 +661,7 @@ const viewer = new Viewer($('#viewer'), {
 })
 let layers = [], saveT = 0, saveInk = null
 async function openViewer(s) {
+  stopPreview(); closeStatusMenu()
   current = s
   show('viewer')
   $('#vTitle').textContent = s.title

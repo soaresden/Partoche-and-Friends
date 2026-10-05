@@ -3,7 +3,8 @@
 // et l'appli fusionne ce que tout le monde a publié (sans conflit possible).
 import { PublicFolder } from './partoche/pcloud.js'
 import { SCORES, MINE, NOTES } from './cloud.js'
-import { lsSet } from './partoche/store.js'
+import { lsSet, lsGet } from './partoche/store.js'
+import { fromFileName, cachedArtist, guessArtist } from './artist.js'
 
 export const STATUS = {
   envie: { icon: '💡', label: 'Envie de le jouer' },
@@ -146,7 +147,13 @@ export class Library {
     const add = (m, list, meta) => {
       for (const f of list) {
         const info = (meta && meta[f.name]) || {}
-        out.push({ id: scoreId(m.id, f.name), owner: m, name: f.name, size: f.size, hash: f.hash, title: info.title || prettyTitle(f.name), composer: info.composer || '', basedOn: info.basedOn || '', addedAt: info.addedAt || 0, mine: m.id === this.me.id })
+        const ff = fromFileName(f.name)
+        const title = info.title || (ff ? ff.title : prettyTitle(f.name))
+        // artiste : corrigé à la main > dans la partition / le nom du fichier > deviné (🔮)
+        const fix = (lsGet('maf:artistFix', {}) || {})[normTitle(title)]
+        let artist = fix || info.artist || info.composer || (ff && ff.artist) || '', guessed = !fix && !!info.artistGuessed
+        if (!artist) { const g = cachedArtist(title); if (g) { artist = g; guessed = true } }
+        out.push({ id: scoreId(m.id, f.name), owner: m, name: f.name, size: f.size, hash: f.hash, title, composer: info.composer || '', artist, guessed, basedOn: info.basedOn || '', addedAt: info.addedAt || 0, mine: m.id === this.me.id })
       }
     }
     add(this.me, this.space.list(SCORES).filter(f => /\.mscz$/i.test(f.name)), this.index.scores)
@@ -166,11 +173,63 @@ export class Library {
     }
     for (const p of byKey.values()) {
       p.versions.sort((a, b) => (a.basedOn ? 1 : 0) - (b.basedOn ? 1 : 0) || a.addedAt - b.addedAt)
+      const sure = p.versions.find(v => v.artist && !v.guessed), any = p.versions.find(v => v.artist)
+      p.artist = (sure || any || {}).artist || ''; p.guessed = !sure && !!any
       p.work = this.workOn(p.versions.map(v => v.id))
       p.comments = this.commentsOn(p.versions.map(v => v.id))
     }
     return [...byKey.values()].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
   }
+  // ---- artistes : deviner ceux qui manquent (une recherche à la fois), garder les miens dans !Moi.json ----
+  async guessMissing(onFound) {
+    if (this._guessing) return; this._guessing = true
+    try {
+      let changed = false
+      for (const p of this.pieces()) {
+        if (p.artist) continue
+        const a = await guessArtist(p.title)
+        if (!a) continue
+        for (const v of p.versions) if (v.mine) { const i = this.index.scores[v.name] = this.index.scores[v.name] || {}; if (!i.artist) { i.artist = a; i.artistGuessed = true; i.title = i.title || v.title; changed = true } }
+        onFound && onFound()
+      }
+      if (changed) await this.save()
+    } finally { this._guessing = false }
+  }
+  // corriger l'artiste / le titre d'un morceau : chez moi c'est publié, sinon gardé dans ce navigateur
+  async setArtist(piece, artist) {
+    artist = artist.trim()
+    const fix = lsGet('maf:artistFix', {}) || {}; if (artist) fix[normTitle(piece.title)] = artist; else delete fix[normTitle(piece.title)]; lsSet('maf:artistFix', fix)
+    let mine = false
+    for (const v of piece.versions) if (v.mine) { const i = this.index.scores[v.name] = this.index.scores[v.name] || {}; i.artist = artist; i.artistGuessed = false; i.title = i.title || v.title; mine = true }
+    if (mine) await this.save()
+  }
+  async setTitle(piece, title) {
+    title = title.trim(); if (!title) return
+    for (const v of piece.versions) if (v.mine) { const i = this.index.scores[v.name] = this.index.scores[v.name] || {}; i.title = title }
+    await this.save()
+  }
+
+  // ---- tags Partoche (Settings/!Settings.json, lu seulement) -> mon statut, le même dans tous mes groupes ----
+  //   À faire -> 💡 envie · En cours -> 🛠️ je bosse dessus · Maîtrisé -> ✅ prêt. Un statut choisi dans Friends prime.
+  async importPartocheTags() {
+    let d = null
+    try { d = await this.space.getJson('Settings/!Settings.json') } catch { return 0 }
+    const tags = (d && d.global && d.global.tags) || {}
+    const MAP = { todo: 'envie', wip: 'encours', done: 'pret' }
+    let n = 0
+    const seen = new Set()
+    for (const [rel, t] of Object.entries(tags)) {
+      const st = MAP[t]; if (!st) continue
+      const id = scoreId(this.me.id, rel.split('/').pop()); seen.add(id)
+      const w = this.index.work[id]
+      if (w && w.src !== 'partoche') continue            // choisi dans Friends : on n'y touche pas
+      if (!w || w.status !== st) { this.index.work[id] = { ...(w || {}), status: st, src: 'partoche', at: Date.now() }; n++ }
+    }
+    for (const [id, w] of Object.entries(this.index.work)) if (w.src === 'partoche' && id.startsWith(this.me.id + '/') && !seen.has(id)) { delete this.index.work[id]; n++ }
+    if (n) await this.save()
+    return n
+  }
+
   async bytes(s) { return s.owner.id === this.me.id ? this.space.getBytes(SCORES + s.name) : this.peer(s.owner.id).bytes(s.name) }
   async addScore(file, info) {
     let name = file.name.replace(/[\\/:*?"<>|]/g, '_')
@@ -198,7 +257,7 @@ export class Library {
     return out
   }
   async setWork(id, patch) {
-    const w = Object.assign({}, this.index.work[id], patch, { at: Date.now() })
+    const w = Object.assign({}, this.index.work[id], patch, { at: Date.now() }); delete w.src
     if (!w.status && !w.part) delete this.index.work[id]; else this.index.work[id] = w
     await this.save()
   }

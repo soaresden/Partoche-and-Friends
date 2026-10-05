@@ -113,6 +113,36 @@ button.link { background: none; border: none; color: var(--muted); padding: 6px 
 .tbl td .none { color: #555b66; }
 .tbl .c-com { color: var(--muted); width: 44px; }
 .legend { color: var(--muted); font-size: 12px; margin: 8px 2px; }
+.tbl th.sortable { cursor: pointer; user-select: none; }
+.tbl th.sortable:hover { color: var(--accent); }
+.tbl i.sort { font-style: normal; color: var(--accent); font-size: 11px; }
+.tbl .c-title { left: 44px; }
+.tbl .c-pv { position: sticky; left: 0; z-index: 1; background: var(--bg2); width: 44px; padding: 4px 6px; }
+.tbl thead .c-pv { z-index: 3; background: var(--bg3); }
+.pvb { width: 32px; height: 32px; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 13px; background: color-mix(in srgb, var(--accent) 20%, var(--bg3)); border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  background-image: conic-gradient(var(--accent) calc(var(--p, 0) * 360deg), transparent 0); }
+.pvb.playing { color: #fff; }
+.pvb.loading { animation: spin-slow 1s linear infinite; }
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.tbl .c-art { text-align: left; min-width: 120px; max-width: 220px; color: #c4c8d0; }
+.tbl .c-art .art { cursor: pointer; border-bottom: 1px dotted transparent; }
+.tbl .c-art .art:hover { border-bottom-color: var(--accent); color: var(--fg); }
+.tbl .c-art i { font-style: normal; font-size: 11px; opacity: .8; }
+.tbl .c-cnt { color: var(--accent); font-weight: 700; width: 48px; }
+.tabs select { max-width: 220px; }
+/* fiche : titre / artiste */
+.meta-edit { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 6px; }
+.meta-edit label { margin: 0; }
+@media (max-width: 560px) { .meta-edit { grid-template-columns: 1fr; } }
+/* menu de statut */
+.stmenu { position: fixed; z-index: 60; width: 230px; background: var(--bg2); border: 1px solid #3a3f4a; border-top: 3px solid var(--accent); border-radius: 12px; padding: 8px; box-shadow: 0 12px 34px rgba(0,0,0,.5); display: grid; gap: 4px; }
+.stm-title { font-size: 12px; color: var(--muted); padding: 2px 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stmenu button { display: flex; gap: 8px; align-items: center; text-align: left; background: transparent; border-color: transparent; }
+.stmenu button span { width: 22px; text-align: center; font-size: 17px; }
+.stmenu button:hover { background: var(--bg3); }
+.stmenu button.on { background: color-mix(in srgb, var(--accent) 25%, var(--bg3)); border-color: var(--accent); }
+.stmenu label { margin: 4px 6px 2px; }
+.stmenu .stm-open { color: var(--accent); justify-content: center; }
 
 /* ---- dialogues ---- */
 dialog { background: var(--bg2); color: var(--fg); border: 1px solid #3a3f4a; border-radius: 16px; width: min(560px, calc(100% - 24px)); max-height: calc(100% - 40px); padding: 18px 20px; }
