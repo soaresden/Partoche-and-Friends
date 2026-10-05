@@ -139,6 +139,11 @@ async function setupFolder() {
   step('Folder', 'Recherche d’une configuration existante dans ton pCloud…')
   try {
     const ex = await findExisting()
+    if (ex && ex.locked) {
+      // config trouvée, mais lisible seulement avec le mot de passe du lien : on présélectionne le dossier
+      await listFolders(ex.folder)
+      return setupMsg('🔁 Configuration trouvée dans « ' + ex.folder.name + ' » : tape le mot de passe de son lien (ou colle le code Partoche) pour la reprendre.')
+    }
     if (ex) {
       const pw = ex.index.me.pw || '', c = await checkLink(ex.folder.link, pw)
       if (c.ok) {
@@ -151,6 +156,9 @@ async function setupFolder() {
       setupMsg('Configuration retrouvée dans « ' + ex.folder.name + ' », mais le mot de passe du lien a changé : choisis le dossier et tape le nouveau.')
     }
   } catch (e) { console.warn(e) }
+  await listFolders()
+}
+async function listFolders(pick) {
   step('Folder', 'Recherche de tes dossiers partagés…')
   let list = []
   try { list = await sharedFolders() } catch (e) { setupMsg('Lecture impossible de tes liens pCloud : ' + e.message); return }
@@ -161,7 +169,8 @@ async function setupFolder() {
     $$('#folderList [data-f]').forEach(x => x.classList.toggle('on', x === b))
     $('#btnFolderOk').disabled = false; $('#folderPw').focus()
   }
-  if (list.length === 1) $('#folderList [data-f]').click()
+  const pi = pick ? list.findIndex(f => f.folderid === pick.folderid) : list.length === 1 ? 0 : -1
+  if (pi >= 0) $$('#folderList [data-f]')[pi].click()
 }
 async function useFolder(f, pw) {
   setupMsg('Vérification du lien…')
@@ -604,4 +613,9 @@ $('#vBack').onclick = async () => {
 }
 addEventListener('pagehide', () => { if (savePages) flushSave() })
 
+// ouverture animée : ~2,6 s (ou un clic), puis l'appli
+{
+  const sp = $('#splash'), bye = () => { if (!sp || sp.classList.contains('out')) return; sp.classList.add('out'); setTimeout(() => sp.remove(), 600) }
+  if (sp) { sp.onclick = bye; setTimeout(bye, 2600) }
+}
 boot()

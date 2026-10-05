@@ -77,11 +77,12 @@ export async function findExisting() {
       const fr = kid(root, 'Friends', true); if (!fr) continue
       const moi = kid((await api(base, token, 'listfolder', { folderid: fr.folderid })).metadata, '!Moi.json', false); if (!moi) continue
       let txt = null
-      try { const r = await fetch(`${base}/gettextfile?${new URLSearchParams({ fileid: moi.fileid, access_token: token })}`); const t = await r.text(); if (r.ok && !/^\s*\{\s*"result"\s*:\s*[1-9]/.test(t)) txt = t } catch { }
-      if (txt == null) {
-        const z = unzipSync(new Uint8Array(await (await fetch(`${base}/getzip?${new URLSearchParams({ fileids: moi.fileid, access_token: token })}`)).arrayBuffer()))
-        txt = new TextDecoder().decode(z[Object.keys(z).find(n => !n.endsWith('/'))])
-      }
+      try {
+        const d = await api(base, token, 'getfilelink', { fileid: moi.fileid, forcedownload: 1 })
+        const r = await fetch('https://' + d.hosts[0] + d.path); if (r.ok) txt = await r.text()
+      } catch { }
+      if (txt == null) try { txt = await new PublicFolder(f.link, '').text(moi.fileid) } catch { }
+      if (txt == null) return { folder: f, locked: true }   // trouvé, mais il faut le mot de passe du lien pour le lire
       const index = JSON.parse(txt)
       if (index && index.me && index.me.name) return { folder: f, index }
     } catch (e) { console.warn('recherche de', f.name, e) }
@@ -155,25 +156,26 @@ class PcloudSpace {
     if (meta) this.index[path] = meta
     return meta
   }
-  // texte d'un de mes fichiers : gettextfile, et si pCloud ou le navigateur le refuse, par getzip (comme les .mscz)
+  // Lire MES fichiers : pCloud refuse gettextfile / getzip avec la connexion de l'appli (« Log in required »).
+  //   1. getfilelink (accepté) -> téléchargement direct ;
+  //   2. sinon mon propre lien de partage + son mot de passe, comme mes potes me lisent (getpubtextfile / getpubzip).
+  pub() { return this._pub || (this._pub = new PublicFolder(this.root.link, this.root.pw || '')) }
+  async viaLink(m) {
+    const d = await this.call('getfilelink', { fileid: m.fileid, forcedownload: 1 })
+    const r = await fetch('https://' + d.hosts[0] + d.path)
+    if (!r.ok) throw new Error('téléchargement ' + r.status)
+    return new Uint8Array(await r.arrayBuffer())
+  }
   async getText(path) {
     const m = this.index[path]; if (!m) return null
-    try {
-      const r = await fetch(`${this.api}/gettextfile?${new URLSearchParams({ fileid: m.fileid, access_token: this.token })}`)
-      const t = await r.text()
-      if (r.ok && !/^\s*\{\s*"result"\s*:\s*[1-9]/.test(t)) return t
-    } catch { }
-    const b = await this.getBytes(path)
-    if (!b) throw new Error('pCloud : lecture impossible de ' + path)
-    return new TextDecoder().decode(b)
+    try { return new TextDecoder().decode(await this.viaLink(m)) } catch (e) { this._why = e }
+    try { return await this.pub().text(m.fileid) } catch (e) { throw new Error('lecture impossible de ' + path + ' (' + (e.message || e) + ')') }
   }
   async getJson(path) { const t = await this.getText(path); return t ? JSON.parse(t) : null }
-  // les serveurs de fichiers pCloud refusent les autres sites (CORS) : on passe par getzip, comme Partoche
   async getBytes(path) {
     const m = this.index[path]; if (!m) return null
-    const r = await fetch(`${this.api}/getzip?${new URLSearchParams({ fileids: m.fileid, access_token: this.token })}`)
-    const files = unzipSync(new Uint8Array(await r.arrayBuffer()))
-    return files[Object.keys(files).find(n => !n.endsWith('/'))]
+    try { return await this.viaLink(m) } catch (e) { this._why = e }
+    return this.pub().bytes(m.fileid)
   }
   list(prefix) { return Object.entries(this.index).filter(([p]) => p.startsWith(prefix) && !p.slice(prefix.length).includes('/')).map(([p, m]) => ({ path: p, name: p.slice(prefix.length), size: m.size, hash: String(m.hash || ''), modified: m.modified })) }
   async remove(path) { const m = this.index[path]; if (!m) return; await this.call('deletefile', { fileid: m.fileid }); delete this.index[path] }

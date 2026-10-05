@@ -156,3 +156,44 @@ textarea { resize: vertical; font-size: 13px; }
   .list { grid-template-columns: 1fr; }
   .mywork { flex-direction: column; gap: 0; }
 }
+
+/* ================= ouverture : tout le groupe joue, les notes s'envolent ================= */
+.splash { position: fixed; inset: 0; z-index: 200; background: radial-gradient(circle at 50% 40%, #1d3a2a, var(--bg) 72%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; transition: opacity .5s ease; cursor: pointer; }
+.splash.out { opacity: 0; pointer-events: none; }
+.spstage { position: relative; width: min(400px, 92vw); aspect-ratio: 360 / 230; animation: sp-in .7s cubic-bezier(.2,.9,.3,1.3); }
+.spband { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 14px 30px rgba(26,163,90,.35)); }
+.spband g { transform-box: fill-box; }
+.sp-violin { transform-origin: 30% 80%; animation: sp-sway 1.2s ease-in-out infinite; }
+.sp-bow { animation: sp-bow .6s ease-in-out infinite alternate; }
+.sp-guitar { transform-origin: 50% 90%; animation: sp-sway 1.2s ease-in-out infinite reverse; }
+.sp-strum { transform-origin: center; animation: sp-strum .3s ease-in-out infinite alternate; }
+.sp-bass { transform-origin: 50% 95%; animation: sp-nod .6s ease-in-out infinite alternate; }
+.sp-stick.l { transform-origin: 0% 0%; animation: sp-hit .3s ease-in infinite alternate; }
+.sp-stick.r { transform-origin: 100% 0%; animation: sp-hit-r .3s ease-in .15s infinite alternate; }
+.sp-cymbal { transform-origin: center; animation: sp-cym .6s ease-in-out infinite; }
+.sp-keys .k { fill: transparent; animation: sp-key 1.4s steps(1) infinite; }
+.sp-keys .k1 { animation-delay: 0s } .sp-keys .k3 { animation-delay: .2s } .sp-keys .k5 { animation-delay: .4s } .sp-keys .k7 { animation-delay: .6s }
+.sp-keys .k6 { animation-delay: .8s } .sp-keys .k4 { animation-delay: 1s } .sp-keys .k2 { animation-delay: 1.2s }
+@keyframes sp-in { from { transform: scale(.5) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sp-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes sp-nod { from { transform: rotate(-2deg) translateY(0); } to { transform: rotate(2deg) translateY(-3px); } }
+@keyframes sp-bow { from { transform: translate(-18px, -8px); } to { transform: translate(18px, 8px); } }
+@keyframes sp-strum { from { transform: translateY(-9px); } to { transform: translateY(7px); } }
+@keyframes sp-hit { from { transform: rotate(-16deg); } to { transform: rotate(4deg); } }
+@keyframes sp-hit-r { from { transform: rotate(16deg); } to { transform: rotate(-4deg); } }
+@keyframes sp-cym { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 75% { transform: rotate(5deg); } }
+@keyframes sp-key { 0% { fill: #3fd17a; } 14% { fill: transparent; } }
+.spnote { position: absolute; left: 50%; top: 40%; font-size: 30px; font-weight: 700; opacity: 0; text-shadow: 0 4px 14px rgba(0,0,0,.4); pointer-events: none; animation: sp-noteup 2.4s ease-out infinite; }
+.spnote.n1 { left: 18%; color: #ffd166; animation-delay: .1s; --dx: -40px; }
+.spnote.n2 { left: 50%; top: 30%; color: #3fd17a; animation-delay: .45s; --dx: 30px; font-size: 36px; }
+.spnote.n3 { left: 80%; color: #ff5c8a; animation-delay: .8s; --dx: 40px; }
+.spnote.n4 { left: 35%; top: 70%; color: #8ad6ff; animation-delay: 1.1s; --dx: -30px; font-size: 26px; }
+.spnote.n5 { left: 65%; top: 25%; color: #c77dff; animation-delay: 1.4s; --dx: 20px; }
+.spnote.n6 { left: 88%; top: 55%; color: #ffd166; animation-delay: 1.7s; --dx: 50px; font-size: 26px; }
+.spnote.n7 { left: 10%; top: 60%; color: #3fd17a; animation-delay: 2s; --dx: -20px; }
+@keyframes sp-noteup { 0% { transform: translate(-50%, 0) scale(.6) rotate(-10deg); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), -140px) scale(1.15) rotate(15deg); opacity: 0; } }
+.spname { font-size: 30px; font-weight: 800; letter-spacing: .01em; animation: sp-up .6s .2s both; }
+.spname span { color: #3fd17a; }
+.spby { font-size: 14px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; animation: sp-up .6s .4s both; }
+@keyframes sp-up { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .spband *, .spstage { animation: none !important; } .spnote { display: none; } }

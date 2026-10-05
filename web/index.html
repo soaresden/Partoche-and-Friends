@@ -15,6 +15,68 @@
 </head>
 <body>
 
+<!-- ================= Ouverture : tout le groupe joue ================= -->
+<div id="splash" class="splash" aria-hidden="true">
+  <div class="spstage">
+    <svg class="spband" viewBox="0 0 360 230">
+      <!-- batterie (au fond, au centre) -->
+      <g class="sp-drums">
+        <line x1="236" y1="70" x2="236" y2="150" stroke="#8a8f99" stroke-width="3"/>
+        <g class="sp-cymbal"><ellipse cx="236" cy="70" rx="26" ry="5" fill="#ffd166" stroke="#b8901f" stroke-width="2"/></g>
+        <ellipse cx="180" cy="104" rx="40" ry="11" fill="#e9fff1" stroke="#0d4f2c" stroke-width="3"/>
+        <path d="M140 104v40c0 8 18 14 40 14s40-6 40-14v-40" fill="#e5484d" stroke="#0d4f2c" stroke-width="3"/>
+        <path d="M144 112l24 34M168 116l24 34M192 116l24 30" stroke="#fff" stroke-opacity=".6" stroke-width="3"/>
+        <g class="sp-stick l"><line x1="128" y1="60" x2="170" y2="100" stroke="#3a2410" stroke-width="6" stroke-linecap="round"/></g>
+        <g class="sp-stick r"><line x1="232" y1="58" x2="192" y2="100" stroke="#3a2410" stroke-width="6" stroke-linecap="round"/></g>
+      </g>
+      <!-- violon + archet (à gauche) -->
+      <g class="sp-violin">
+        <g transform="translate(62 118) rotate(-24)">
+          <path d="M0-62c-15 0-22 9-22 21 0 8 6 12 6 18s-10 10-10 22c0 19 12 31 26 31s26-12 26-31c0-12-10-16-10-22s6-10 6-18c0-12-7-21-22-21z" fill="#f2b05c" stroke="#7a4310" stroke-width="3"/>
+          <rect x="-3" y="-108" width="6" height="48" rx="2" fill="#3a2410"/><circle cx="0" cy="-112" r="6" fill="#3a2410"/>
+          <path d="M-7-14q-4 6 0 12M7-14q4 6 0 12" stroke="#7a4310" stroke-width="2.5" fill="none"/>
+        </g>
+        <g class="sp-bow"><line x1="14" y1="150" x2="126" y2="84" stroke="#fff" stroke-width="4" stroke-linecap="round"/><line x1="16" y1="154" x2="128" y2="88" stroke="#c9b28a" stroke-width="1.5"/></g>
+      </g>
+      <!-- basse (derrière la guitare) -->
+      <g class="sp-bass">
+        <g transform="translate(318 132) rotate(-10)">
+          <rect x="-4" y="-118" width="8" height="92" rx="3" fill="#2b1a0b"/>
+          <rect x="-9" y="-134" width="18" height="20" rx="4" fill="#2b1a0b"/>
+          <path d="M-6-34c-16-6-30 4-30 20 0 9 6 13 4 21-3 15-7 26 3 36 11 11 34 10 47 0 11-8 9-23 4-35-4-9 1-15 3-25 1-14-8-23-19-20-6 1-8 4-12 3z" fill="#8c1d2f" stroke="#2b1a0b" stroke-width="3"/>
+        </g>
+      </g>
+      <!-- guitare (à droite) -->
+      <g class="sp-guitar">
+        <g transform="translate(276 138) rotate(24)">
+          <rect x="-4" y="-112" width="8" height="66" rx="3" fill="#3a2410"/>
+          <rect x="-9" y="-128" width="18" height="18" rx="4" fill="#3a2410"/>
+          <path d="M0-52c-20 0-30 12-30 26 0 9 7 14 7 19s-13 12-13 26c0 22 17 36 36 36s36-14 36-36c0-14-13-21-13-26s7-10 7-19c0-14-10-26-30-26z" fill="#ffd166" stroke="#7a4310" stroke-width="3"/>
+          <circle cx="0" cy="6" r="10" fill="#3a2410"/>
+          <g class="sp-strum"><circle cx="0" cy="22" r="7" fill="#f6c9a0" stroke="#7a4310" stroke-width="2"/></g>
+        </g>
+      </g>
+      <!-- piano (devant) -->
+      <g class="sp-piano" transform="translate(70 172)">
+        <rect width="220" height="52" rx="9" fill="#0d4f2c"/>
+        <rect x="8" y="7" width="204" height="38" rx="4" fill="#fff"/>
+        <g class="sp-keys">
+          <rect class="k k1" x="8" y="7" width="29" height="38"/><rect class="k k2" x="37" y="7" width="29" height="38"/>
+          <rect class="k k3" x="66" y="7" width="29" height="38"/><rect class="k k4" x="95" y="7" width="29" height="38"/>
+          <rect class="k k5" x="124" y="7" width="29" height="38"/><rect class="k k6" x="153" y="7" width="29" height="38"/>
+          <rect class="k k7" x="182" y="7" width="30" height="38"/>
+        </g>
+        <g stroke="#0d4f2c" stroke-width="2"><line x1="37" y1="7" x2="37" y2="45"/><line x1="66" y1="7" x2="66" y2="45"/><line x1="95" y1="7" x2="95" y2="45"/><line x1="124" y1="7" x2="124" y2="45"/><line x1="153" y1="7" x2="153" y2="45"/><line x1="182" y1="7" x2="182" y2="45"/></g>
+        <g fill="#0d4f2c"><rect x="29" y="7" width="15" height="22" rx="2"/><rect x="58" y="7" width="15" height="22" rx="2"/><rect x="116" y="7" width="15" height="22" rx="2"/><rect x="145" y="7" width="15" height="22" rx="2"/><rect x="174" y="7" width="15" height="22" rx="2"/></g>
+      </g>
+    </svg>
+    <span class="spnote n1">♪</span><span class="spnote n2">♫</span><span class="spnote n3">♩</span>
+    <span class="spnote n4">♬</span><span class="spnote n5">♪</span><span class="spnote n6">♫</span><span class="spnote n7">♩</span>
+  </div>
+  <div class="spname">Partoche <span>&amp;</span> Friends</div>
+  <div class="spby">on joue ensemble</div>
+</div>
+
 <!-- ================= Premier lancement ================= -->
 <section id="setup" class="screen" hidden>
   <div class="setup-card">
