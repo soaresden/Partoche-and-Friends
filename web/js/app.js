@@ -41,7 +41,9 @@ async function boot() {
   if (inv) { lsSet('maf:invite', inv); lsSet('maf:intent', 'link'); setClientId(inv.c); history.replaceState(null, '', location.pathname + location.search) }
 
   const kind = lsGet('maf:space', '')
-  if (!kind && inv) { lsSet('maf:space', 'guest'); return boot() }   // lien d'invitation, sans compte : on consulte tout de suite
+  // lien d'invitation et pas de connexion pCloud active (rien de configuré, ou une config commencée et pas finie) :
+  // on consulte tout de suite ; « ☁️ Contribuer » reprendra la connexion
+  if (inv && (!kind || (kind === 'pcloud' && !hasPcloud()))) { lsSet('maf:space', 'guest'); return boot() }
   if (!kind) return step('Welcome')
   if (kind === 'guest' && !lsGet('maf:invite', null)) { localStorage.removeItem('maf:space'); return step('Welcome') }
   if (kind === 'pcloud' && !hasPcloud()) return lsGet('maf:intent', '') ? setupSpace() : setupStart()
@@ -130,6 +132,7 @@ async function scanAndUse() {
 }
 $('#btnScan').onclick = scanAndUse
 $('#btnScan2').onclick = scanAndUse
+if ($('#btnGuest2')) $('#btnGuest2').onclick = () => { if (!lsGet('maf:invite', null)) return; lsSet('maf:space', 'guest'); boot() }
 if ($('#btnGuest')) $('#btnGuest').onclick = () => { if (!lsGet('maf:invite', null)) return; lsSet('maf:space', 'guest'); boot() }
 $('#btnStartOk').onclick = () => {
   const k = $('#btnStartOk').dataset.k
@@ -148,6 +151,7 @@ function setupSpace(err) {
     : intent === 'link' && inv ? `🔗 Tu vas rejoindre <b>${esc(inv.g.name)}</b>`
     : `✨ Tu vas créer <b>${esc(lsGet('maf:groupName', '') || 'ton collectif')}</b>`
   $('#spaceBack').hidden = intent === 'resume'
+  if ($('#btnGuest2')) $('#btnGuest2').hidden = !lsGet('maf:invite', null)
   // pas d'identifiant (version en ligne, premier membre) : on le demande, avec l'adresse de retour à déclarer chez pCloud
   $('#clientBox').hidden = !!clientId()
   $('#redirectShow').textContent = redirectUri()
