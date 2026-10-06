@@ -180,6 +180,7 @@
         <div id="joinBox" class="invite-box" hidden></div>
       </div>
       <button id="btnStartOk" class="big primary" disabled>Continuer</button>
+      <button id="btnGuest" class="big" hidden>👀 Juste consulter, sans compte pCloud</button>
       <button class="link back" data-back="welcome">← Retour</button>
     </div>
 
@@ -244,6 +245,10 @@
     <button id="btnAdd" class="primary">＋ Partition</button>
     <button id="btnInvite">🤝 Inviter</button>
   </header>
+  <div id="guestBar" class="guestbar" hidden>
+    <span>👀 <b>Mode consultation</b> : tu vois les partitions, les annotations et les discussions du collectif. Pour mettre ton nom, annoter, indiquer ce que tu bosses et écrire, il te faut ton compte pCloud.</span>
+    <button id="btnContribute" class="primary">☁️ Contribuer</button>
+  </div>
   <nav class="tabs">
     <button data-tab="all" class="on">📚 Bibliothèque</button>
     <button data-tab="work">🛠️ Chantiers</button>
@@ -303,6 +308,14 @@
   <p class="pin-show">Code : <b id="devicePin"></b></p>
   <p class="hint">Valable 15 minutes. Ce QR code donne accès à ton pCloud : ne le montre à personne d'autre.</p>
   <details><summary>Pas d'appareil photo ?</summary><textarea id="deviceOut" readonly rows="3"></textarea></details>
+</dialog>
+
+<dialog id="guestDlg">
+  <form method="dialog" class="dlg-x"><button>✕</button></form>
+  <h2>👀 Tu consultes en invité</h2>
+  <p>Tu peux tout regarder et écouter. Pour <b>contribuer</b> (ton prénom, tes annotations, ce que tu bosses, la discussion, tes partitions), il te faut un compte <b>pCloud</b> : c'est là que tes contributions sont rangées, et c'est ce qui permet de les partager.</p>
+  <p class="hint">Pas de compte ? Il est gratuit : <a href="https://www.pcloud.com/fr/" target="_blank" rel="noopener">pcloud.com</a>, « S'inscrire ». Le <a href="tuto.html">tuto de Paf</a> te guide.</p>
+  <button id="btnContribute2" class="big primary">☁️ Contribuer : connecter mon pCloud</button>
 </dialog>
 
 <dialog id="meDlg">

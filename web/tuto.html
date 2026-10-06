@@ -342,7 +342,7 @@ function finish() {
   } else {
     if (A.pcloud === 'no') stepPcloudAccount()
     if (A.goal === 'create' && A.client === 'make') stepClientId()
-    if (A.goal === 'join') S('Garde ton lien d’invitation sous la main', '<p>Ton pote t’a envoyé un lien qui ressemble à <code>…github.io/Partoche-and-Friends/#rejoindre=F1.…</code> (ou juste un code <code>F1.…</code>).</p><p>Il contient tout : le collectif, ses membres et l’identifiant pCloud. <b>Tu n’as rien d’autre à demander.</b> Clique dessus, ou garde-le pour l’étape « Configure l’appli ».</p>')
+    if (A.goal === 'join') S('Garde ton lien d’invitation sous la main', '<p>Ton pote t’a envoyé un lien qui ressemble à <code>…github.io/Partoche-and-Friends/#rejoindre=F1.…</code> (ou juste un code <code>F1.…</code>).</p><p>Il contient tout : le collectif, ses membres et l’identifiant pCloud. <b>Tu n’as rien d’autre à demander.</b> Clique dessus, ou garde-le pour l’étape « Configure l’appli ».</p><div class="note">👀 En cliquant sur le lien, tu arrives tout de suite en <b>mode consultation</b> : tu vois les partitions, les annotations et les discussions, même sans compte. Pour mettre ton nom et participer (annoter, ton statut, écrire), clique sur <b>☁️ Contribuer</b> et suis les étapes ci-dessous.</div>')
     stepInstall()
     stepConfigure()
     if (A.goal === 'create') stepInvite()

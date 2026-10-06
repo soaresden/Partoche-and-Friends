@@ -96,6 +96,7 @@ export class Library {
   }
   get me() { return this.index.me }
   async save() {
+    if (this.space.kind === 'guest') return   // consultation : on n'écrit rien
     this.index.updated = Date.now()
     lsSet('maf:index', this.index)   // copie dans ce navigateur : un F5 retrouve toujours mon profil
     await this.space.put(MINE + '!Moi.json', JSON.stringify(this.index, null, 1))

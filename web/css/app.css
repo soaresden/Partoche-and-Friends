@@ -540,3 +540,12 @@ body:has(#viewer:not([hidden])) .toast { bottom: 84px; }
 #btnRefresh .lbl { font-size: 14px; }
 @media (max-width: 900px) { #btnRefresh .lbl { display: none; } }
 @media (prefers-reduced-motion: reduce) { .newtag { animation: none; } }
+
+/* mode consultation (invité sans compte) : on regarde, on n'écrit pas */
+.guestbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 14px 0; padding: 10px 14px; border-radius: 12px; font-size: 14px;
+  background: color-mix(in srgb, #64748b 22%, var(--bg2)); border: 1px solid #64748b; }
+.guestbar span { flex: 1; min-width: 220px; }
+body.guest #btnAdd, body.guest #btnInvite, body.guest .mywork, body.guest [data-cp], body.guest [data-rm], body.guest #pdMetaSave,
+body.guest #vPen, body.guest #chatForm, body.guest #btnDevice { display: none !important; }
+body.guest .meta-edit input { pointer-events: none; opacity: .75; }
+body.guest #vChat::after { content: "👀 Connecte ton pCloud (☁️ Contribuer) pour écrire."; display: block; padding: 10px 14px; color: var(--muted); font-size: 13px; border-top: 1px solid #2c3039; }

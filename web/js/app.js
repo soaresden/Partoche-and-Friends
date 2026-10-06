@@ -41,11 +41,20 @@ async function boot() {
   if (inv) { lsSet('maf:invite', inv); lsSet('maf:intent', 'link'); setClientId(inv.c); history.replaceState(null, '', location.pathname + location.search) }
 
   const kind = lsGet('maf:space', '')
-  if (!kind) return inv ? setupStart('link') : step('Welcome')
+  if (!kind && inv) { lsSet('maf:space', 'guest'); return boot() }   // lien d'invitation, sans compte : on consulte tout de suite
+  if (!kind) return step('Welcome')
+  if (kind === 'guest' && !lsGet('maf:invite', null)) { localStorage.removeItem('maf:space'); return step('Welcome') }
   if (kind === 'pcloud' && !hasPcloud()) return lsGet('maf:intent', '') ? setupSpace() : setupStart()
   try {
     step('', 'Ouverture de ton espace…')
     space = await openSpace(kind)
+    if (kind === 'guest') {   // consultation : le collectif et ses membres viennent de l'invitation
+      const gi = lsGet('maf:invite', null), id = lsGet('maf:guestId', '') || randomId(); lsSet('maf:guestId', id)
+      lib = new Library(space, { ...emptyIndex({ id, name: 'Invité', emoji: '👀', color: '#64748b', instruments: '' }), group: gi.g })
+      for (const m of gi.m) lib.learn(m)
+      setClientId(gi.c)
+      return startMain()
+    }
     let index = null, readErr = null
     // mon profil : dans pCloud ; sinon la copie de ce navigateur ; jamais repartir de zéro s'il existe
     try { index = await space.getJson(MINE + '!Moi.json') } catch (e) { readErr = e; console.error('lecture de !Moi.json', e) }
@@ -92,6 +101,7 @@ function pickStart(k) {
 }
 function paintStartOk() {
   const k = $('#btnStartOk').dataset.k
+  if ($('#btnGuest')) $('#btnGuest').hidden = !(k === 'link' && lsGet('maf:invite', null))
   $('#btnStartOk').disabled = !(k === 'new' || (k === 'link' && lsGet('maf:invite', null)))
 }
 function paintInvite() {
@@ -120,6 +130,7 @@ async function scanAndUse() {
 }
 $('#btnScan').onclick = scanAndUse
 $('#btnScan2').onclick = scanAndUse
+if ($('#btnGuest')) $('#btnGuest').onclick = () => { if (!lsGet('maf:invite', null)) return; lsSet('maf:space', 'guest'); boot() }
 $('#btnStartOk').onclick = () => {
   const k = $('#btnStartOk').dataset.k
   lsSet('maf:intent', k)
@@ -177,6 +188,17 @@ function mountLook(p) {
 const setLookP = mountLook('p'), setLookM = mountLook('m')
 // fermer le profil sans enregistrer : on revient à sa couleur
 $('#meDlg').addEventListener('close', () => lib && applyTheme(lib.me.color))
+
+// ---- consultation -> contribuer ----
+function contribute() {
+  closeTuto && closeTuto()
+  for (const d of document.querySelectorAll('dialog[open]')) d.close()
+  if (!$('#viewer').hidden) $('#vBack').click()
+  localStorage.removeItem('maf:space'); lsSet('maf:intent', 'link')
+  document.body.classList.remove('guest')
+  setupSpace()
+}
+for (const id of ['#btnContribute', '#btnContribute2']) if ($(id)) $(id).onclick = contribute
 
 // ---- 3. le dossier Partoche (déjà partagé par lien) ----
 let folderPick = null
@@ -330,15 +352,19 @@ async function publishMyLink() {
 // =====================================================================
 //  BIBLIOTHÈQUE
 // =====================================================================
+const GUEST = () => space && space.kind === 'guest'
 async function startMain(justJoined) {
   show('main'); applyTheme(lib.me.color)
+  document.body.classList.toggle('guest', GUEST())
+  $('#guestBar').hidden = !GUEST()
   $('#groupTitle').textContent = lib.index.group.name
-  $('#spaceInfo').textContent = space.kind === 'demo' ? 'mode démo · rien n’est partagé' : `pCloud · dossier « ${(space.root || {}).name || ''} »`
+  $('#spaceInfo').textContent = space.kind === 'demo' ? 'mode démo · rien n’est partagé' : GUEST() ? '👀 consultation · sans compte' : `pCloud · dossier « ${(space.root || {}).name || ''} »`
   if (space.kind === 'pcloud' && !lib.me.link) { try { await publishMyLink(); await lib.save() } catch (e) { toast('Lien de partage impossible : ' + e.message, 6000) } }
-  if (!lib.index.group.admin && !lib.index.knows.length) { lib.index.group.admin = lib.me.id; lib.save().catch(() => { }) }
+  if (!GUEST() && !lib.index.group.admin && !lib.index.knows.length) { lib.index.group.admin = lib.me.id; lib.save().catch(() => { }) }
   renderAll()
   relay = new Relay(lib.index.group, () => lib.me, onRelay)
-  if (space.kind === 'pcloud') relay.start()
+  relay.readOnly = GUEST()   // en consultation : on écoute (présence, mises à jour), on ne s'annonce pas
+  if (space.kind === 'pcloud' || GUEST()) relay.start()
   await refresh(true)
   if (justJoined && lib.index.knows.length) relay.send({ ev: 'index' })
   if (justJoined && !lib.index.knows.length && space.kind === 'pcloud') setTimeout(() => $('#btnInvite').click(), 600)
@@ -381,7 +407,7 @@ const avatar = (m, cls = '') => `<span class="avatar ${cls} ${relay && m.id !== 
 const chip = (m, txt) => `<span class="chip" style="--c:${esc(m.color || '#888')}">${esc(m.emoji || '🎵')} ${esc(txt ?? m.name)}</span>`
 
 function paintDots() {
-  $('#memberDots').innerHTML = lib.members().map(m => avatar(m)).join('')
+  $('#memberDots').innerHTML = (GUEST() ? lib.index.knows : lib.members()).map(m => avatar(m)).join('')
   const sel = $('#filterMember'), v = sel.value
   sel.innerHTML = '<option value="">Tout le monde</option>' + lib.members().map(m => `<option value="${esc(m.id)}">${esc(m.emoji || '')} ${esc(m.name)}</option>`).join('')
   sel.value = v
@@ -437,7 +463,7 @@ function renderList() {
   const oldWrap = $('#list .tbl-wrap'), keep = oldWrap ? { t: oldWrap.scrollTop, l: oldWrap.scrollLeft } : null
   const val = s => { const e = $(s); return e ? e.value : '' }   // page et script d'âges différents (cache) : pas de plantage
   const q = normTitle(val('#search')), who = val('#filterMember'), fst = val('#filterStatus')
-  const mem = lib.members()
+  const mem = GUEST() ? lib.index.knows.slice() : lib.members()
   let pieces = lib.pieces()
   for (const p of pieces) { p.cnt = p.work.filter(w => w.status).length; p.mineW = p.work.find(w => w.member.id === lib.me.id) || null }
   if (q) pieces = pieces.filter(p => normTitle(p.title + ' ' + p.artist + ' ' + p.versions.map(v => v.composer).join(' ')).includes(q))
@@ -466,6 +492,7 @@ function renderList() {
     const why = [val('#search') && `la recherche « ${esc(val('#search'))} »`, who && 'le filtre par personne', fst && 'le filtre de statut', tab === 'work' && 'l’onglet Chantiers'].filter(Boolean)
     L.innerHTML = why.length
       ? `<div class="empty">Aucun morceau ne correspond à ${why.join(', ')}.<br><button id="btnShowAll" class="primary" style="margin-top:10px">Tout réafficher</button></div>`
+      : GUEST() ? '<div class="empty">Aucune partition visible pour l’instant.<br>Clique sur <b>⟳</b> dans un instant ; si ça reste vide, les dossiers des membres sont peut-être injoignables (👥 Membres).</div>'
       : '<div class="empty">Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.</div>'
     if ($('#btnShowAll')) $('#btnShowAll').onclick = clearFilters
     return
@@ -523,6 +550,7 @@ function clearFilters() {
 // ---- menu de statut sur ma case : un clic, je choisis ----
 function statusMenu(p, td) {
   closeStatusMenu()
+  if (GUEST()) return toast('👀 Mode consultation : connecte ton pCloud (☁️ Contribuer) pour indiquer ce que tu bosses.')
   const w = p.mineW || {}
   const m = document.createElement('div'); m.id = 'stMenu'; m.className = 'stmenu'
   m.innerHTML = `<div class="stm-title">${esc(p.title)}</div>
@@ -560,7 +588,7 @@ function playPreview(p, btn) {
 
 function renderMembers() {
   // collectif créé avant les admins, avec déjà plusieurs membres : son créateur se déclare (le premier gagne)
-  const claim = !lib.adminId() ? `<article class="card member-card"><div>👑 Ce collectif n'a pas encore d'admin.</div><div class="muted">C'est toi qui l'as créé ? Déclare-toi admin : tu pourras retirer des membres.</div><div><button class="small primary" id="btnClaimAdmin">👑 Je suis le créateur, devenir admin</button></div></article>` : ''
+  const claim = !lib.adminId() && !GUEST() ? `<article class="card member-card"><div>👑 Ce collectif n'a pas encore d'admin.</div><div class="muted">C'est toi qui l'as créé ? Déclare-toi admin : tu pourras retirer des membres.</div><div><button class="small primary" id="btnClaimAdmin">👑 Je suis le créateur, devenir admin</button></div></article>` : ''
   const counts = new Map(); for (const s of lib.scores()) counts.set(s.owner.id, (counts.get(s.owner.id) || 0) + 1)
   $('#list').innerHTML = lib.members().map(m => {
     const p = m.id === lib.me.id ? null : lib.peers.get(m.id)
@@ -708,6 +736,7 @@ $('#btnCopyInvite').onclick = async () => { try { await navigator.clipboard.writ
 $('#btnShareInvite').onclick = () => navigator.share ? navigator.share({ title: 'Partoche and Friends', text: `Rejoins « ${lib.index.group.name} » sur Partoche and Friends`, url: $('#inviteOut').value }).catch(() => { }) : $('#btnCopyInvite').click()
 
 $('#btnMe').onclick = async () => {
+  if (GUEST()) return $('#guestDlg').showModal()
   $('#mName').value = lib.me.name; $('#mInstr').value = lib.me.instruments || ''
   setLookM(lib.me.emoji, lib.me.color)
   $('#meSpace').textContent = 'Espace : …'
@@ -780,6 +809,7 @@ function renderChat(scroll) {
 }
 $('#chatForm').onsubmit = async e => {
   e.preventDefault()
+  if (GUEST()) return toast('👀 Mode consultation : connecte ton pCloud pour écrire.')
   const t = $('#chatIn').value.trim(), p = pieceOfCurrent(); if (!t || !p) return
   $('#chatIn').value = ''
   await lib.comment(p.versions[0].id, t)

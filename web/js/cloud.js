@@ -223,7 +223,26 @@ class DemoSpace {
   async account() { return { email: 'démo (ce navigateur)', premium: false, folder: '' } }
 }
 
+// ---------------------------------------------------------------------
+//  Consultation : ouvert par un lien d'invitation, sans compte pCloud.
+//  On lit les dossiers des membres (leurs liens de partage), on n'écrit rien nulle part.
+// ---------------------------------------------------------------------
+class GuestSpace {
+  constructor() { this.kind = 'guest'; this.index = {} }
+  async init() { return this }
+  async refresh() { return this.index }
+  async put() { throw new Error('mode consultation : connecte ton pCloud pour contribuer') }
+  async getBytes() { return null }
+  async getText() { return null }
+  async getJson() { return null }
+  list() { return [] }
+  async remove() { throw new Error('mode consultation') }
+  async shareLink() { return { link: '', pw: '' } }
+  async account() { return { email: 'consultation, sans compte pCloud', premium: false, folder: '' } }
+}
+
 export async function openSpace(kind) {
   if (kind === 'pcloud') return new PcloudSpace(lsGet(TOKEN_KEY, {}), myRoot()).init()
+  if (kind === 'guest') return new GuestSpace().init()
   return new DemoSpace().init()
 }

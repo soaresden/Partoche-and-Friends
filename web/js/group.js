@@ -93,7 +93,7 @@ export class Relay {
       this.sse = new EventSource(this.base + this.topic + '/sse')
       this.sse.onmessage = ev => { try { const m = JSON.parse(ev.data); if (!m.event || m.event === 'message') this._in(m.message, Date.now(), false) } catch { } }
     }
-    const prepBye = async () => { this.byeBody = await seal(this.group, { ev: 'bye', from: this.me() }) }
+    const prepBye = async () => { if (!this.readOnly) this.byeBody = await seal(this.group, { ev: 'bye', from: this.me() }) }
     this.send({ ev: 'hello' }); prepBye()
     this.timer = setInterval(() => { this.send({ ev: 'hello' }); prepBye(); this._expire() }, 75000)
     // à la fermeture, pas le temps de chiffrer : message « bye » préparé à l'avance
@@ -109,7 +109,7 @@ export class Relay {
   _expire() { for (const [id, v] of this.online) if (Date.now() - v.at > 200000) this.online.delete(id) }
   isOnline(id) { const v = this.online.get(id); return !!v && Date.now() - v.at < 200000 }
   async send(o) {
-    if (navigator.onLine === false || !this.topic) return
+    if (navigator.onLine === false || !this.topic || this.readOnly) return
     const body = await seal(this.group, { ...o, from: this.me(), score: o.score || this.here || '' })
     fetch(this.base + this.topic, { method: 'POST', body, keepalive: true }).catch(() => { })
   }
