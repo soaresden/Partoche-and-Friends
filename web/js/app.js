@@ -13,7 +13,12 @@ const $$ = s => [...document.querySelectorAll(s)]
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 const CFG = window.MAF_CONFIG || {}
 let toastT = 0
-function toast(msg, ms = 3000) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms) }
+// petit message en bas de l'écran ; passé dans la « couche du dessus » (popover) pour rester visible même par-dessus une fenêtre ouverte
+function toast(msg, ms = 3000) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false
+  if (t.showPopover) { try { if (!t.hasAttribute('popover')) t.setAttribute('popover', 'manual'); if (t.matches(':popover-open')) t.hidePopover(); t.showPopover() } catch { } }
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; try { t.hidePopover && t.hidePopover() } catch { } }, ms)
+}
 function show(id) { for (const s of $$('.screen')) s.hidden = s.id !== id }
 const ago = t => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? 'à l’instant' : s < 3600 ? 'il y a ' + Math.round(s / 60) + ' min' : s < 86400 ? 'il y a ' + Math.round(s / 3600) + ' h' : new Date(t).toLocaleDateString('fr-FR') }
 
@@ -742,7 +747,7 @@ $('#btnShareInvite').onclick = () => navigator.share ? navigator.share({ title: 
 $('#btnMe').onclick = async () => {
   if (GUEST()) return $('#guestDlg').showModal()
   $('#mName').value = lib.me.name; $('#mInstr').value = lib.me.instruments || ''
-  $('#mClientId').value = clientId()
+  $('#mClientId').value = clientId(); $('#clientSaved').hidden = true
   setLookM(lib.me.emoji, lib.me.color)
   $('#meSpace').textContent = 'Espace : …'
   $('#meDlg').showModal()
@@ -756,7 +761,9 @@ $('#btnMeSave').onclick = async () => {
 $('#btnClientSave').onclick = () => {
   const v = $('#mClientId').value.trim()
   if (!/^[A-Za-z0-9_-]{6,}$/.test(v)) return toast('Ce Client ID ne ressemble pas à un identifiant pCloud (lettres et chiffres).', 5000)
-  setClientId(v); toast('Client ID enregistré : il servira à la prochaine connexion et dans tes invitations.')
+  setClientId(v); $('#mClientId').value = clientId()
+  const ok = $('#clientSaved'); ok.hidden = false; ok.textContent = '✅ Enregistré : ' + clientId() + ' — il servira à la prochaine connexion pCloud et dans tes prochaines invitations.'
+  clearTimeout(ok._t); ok._t = setTimeout(() => ok.hidden = true, 8000)
 }
 $('#btnLeave').onclick = () => {
   if (!confirm('Oublier ce collectif et la connexion pCloud sur cet appareil ?')) return
