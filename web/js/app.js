@@ -742,6 +742,7 @@ $('#btnShareInvite').onclick = () => navigator.share ? navigator.share({ title: 
 $('#btnMe').onclick = async () => {
   if (GUEST()) return $('#guestDlg').showModal()
   $('#mName').value = lib.me.name; $('#mInstr').value = lib.me.instruments || ''
+  $('#mClientId').value = clientId()
   setLookM(lib.me.emoji, lib.me.color)
   $('#meSpace').textContent = 'Espace : …'
   $('#meDlg').showModal()
@@ -751,6 +752,11 @@ $('#btnMeSave').onclick = async () => {
   Object.assign(lib.me, { name: $('#mName').value.trim() || lib.me.name, emoji: $('#mEmoji').value.trim() || lib.me.emoji, color: $('#mColor').value, instruments: $('#mInstr').value.trim() })
   await lib.save(); relay && relay.send({ ev: 'index' })
   $('#meDlg').close(); applyTheme(lib.me.color); renderAll()
+}
+$('#btnClientSave').onclick = () => {
+  const v = $('#mClientId').value.trim()
+  if (!/^[A-Za-z0-9_-]{6,}$/.test(v)) return toast('Ce Client ID ne ressemble pas à un identifiant pCloud (lettres et chiffres).', 5000)
+  setClientId(v); toast('Client ID enregistré : il servira à la prochaine connexion et dans tes invitations.')
 }
 $('#btnLeave').onclick = () => {
   if (!confirm('Oublier ce collectif et la connexion pCloud sur cet appareil ?')) return
@@ -880,9 +886,9 @@ document.addEventListener('click', e => {
   openTuto(); navGuard()
 })
 
-// ouverture animée : ~3 s (ou un clic), puis l'appli
+// ouverture animée : 8 s (ou un clic), puis l'appli
 {
   const sp = $('#splash'), bye = () => { if (!sp || sp.classList.contains('out')) return; sp.classList.add('out'); setTimeout(() => sp.remove(), 600) }
-  if (sp) { sp.onclick = bye; setTimeout(bye, 3200) }
+  if (sp) { sp.onclick = bye; setTimeout(bye, 8000) }
 }
 boot()

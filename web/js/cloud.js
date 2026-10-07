@@ -23,7 +23,8 @@ const TOKEN_KEY = 'maf:pcloud', ROOT_KEY = 'maf:root'
 //  Connexion pCloud (OAuth « implicit » : le jeton reste dans ce navigateur)
 // ---------------------------------------------------------------------
 // identifiant de l'appli pCloud : config.local.js (ce PC) ou config.js, sinon tapé à la config / reçu dans l'invitation
-export const clientId = () => CFG.pcloudClientId || lsGet('maf:clientId', '')
+// celui choisi dans Mon profil (ou reçu par une invitation) prime sur la configuration du site
+export const clientId = () => lsGet('maf:clientId', '') || CFG.pcloudClientId
 export function setClientId(id) { if (id) lsSet('maf:clientId', String(id).trim()) }
 export const redirectUri = () => location.origin + location.pathname.replace(/index\.html$/, '')
 export function pcloudLoginUrl() {

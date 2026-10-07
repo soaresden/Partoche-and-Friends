@@ -115,17 +115,6 @@
   <svg class="sproad" viewBox="0 0 800 150" preserveAspectRatio="xMidYMax meet">
     <rect x="-3000" y="58" width="6800" height="52" fill="#2a2f37"/>
     <g class="sp-dashes" stroke="#e8eaf0" stroke-width="3" stroke-dasharray="26 22" opacity=".55"><line x1="-3000" y1="84" x2="4000" y2="84"/></g>
-    <!-- la voiture file sur la route, derrière le chien -->
-    <g transform="translate(0 6) scale(.85)">
-    <g class="sp-car">
-      <g class="sp-wind" stroke="#e8eaf0" stroke-width="3" stroke-linecap="round" opacity=".6"><line x1="132" y1="58" x2="170" y2="58"/><line x1="140" y1="72" x2="186" y2="72"/><line x1="150" y1="86" x2="178" y2="86"/></g>
-      <path d="M8 84v-18c0-6 4-10 10-11l20-3 18-17c4-4 9-6 15-6h38c6 0 10 2 14 6l16 17 12 2c6 1 10 6 10 12v18z" fill="#3fd17a" stroke="#0d4f2c" stroke-width="3"/>
-      <path d="M48 52l14-13c3-3 6-4 10-4h12v17zM92 35h12c4 0 7 1 9 4l11 13H92z" fill="#bfe9ff" stroke="#0d4f2c" stroke-width="2"/>
-      <circle cx="38" cy="86" r="11" fill="#1b1b1b"/><circle cx="38" cy="86" r="4" fill="#9aa1ab"/>
-      <circle cx="118" cy="86" r="11" fill="#1b1b1b"/><circle cx="118" cy="86" r="4" fill="#9aa1ab"/>
-      <circle cx="10" cy="70" r="4" fill="#ffd166"/>
-    </g>
-    </g>
     <rect x="-3000" y="110" width="6800" height="40" fill="#3a404b"/><rect x="-3000" y="108" width="6800" height="5" fill="#59606c"/>
     <!-- le chien, assis au bord du trottoir, langue pendante -->
     <g class="sp-dog" transform="translate(300 84)">
@@ -141,6 +130,17 @@
       <path d="M35 23q5 4 10 0" stroke="#1b1b1b" stroke-width="1.6" fill="none"/>
       <path class="sp-tongue" d="M37 24h6v9a3 3 0 0 1-6 0z" fill="#ff5c8a" stroke="#c23a63" stroke-width="1"/>
       <rect x="27" y="30" width="26" height="5" rx="2.5" fill="#e5484d"/><circle cx="40" cy="37" r="3" fill="#ffd166"/>
+    </g>
+      <!-- la voiture arrive sur le trottoir… et Paf saute par-dessus ! -->
+    <g transform="translate(0 62) scale(.85)">
+    <g class="sp-car">
+      <g class="sp-wind" stroke="#e8eaf0" stroke-width="3" stroke-linecap="round" opacity=".6"><line x1="132" y1="58" x2="170" y2="58"/><line x1="140" y1="72" x2="186" y2="72"/><line x1="150" y1="86" x2="178" y2="86"/></g>
+      <path d="M8 84v-18c0-6 4-10 10-11l20-3 18-17c4-4 9-6 15-6h38c6 0 10 2 14 6l16 17 12 2c6 1 10 6 10 12v18z" fill="#3fd17a" stroke="#0d4f2c" stroke-width="3"/>
+      <path d="M48 52l14-13c3-3 6-4 10-4h12v17zM92 35h12c4 0 7 1 9 4l11 13H92z" fill="#bfe9ff" stroke="#0d4f2c" stroke-width="2"/>
+      <circle cx="38" cy="86" r="11" fill="#1b1b1b"/><circle cx="38" cy="86" r="4" fill="#9aa1ab"/>
+      <circle cx="118" cy="86" r="11" fill="#1b1b1b"/><circle cx="118" cy="86" r="4" fill="#9aa1ab"/>
+      <circle cx="10" cy="70" r="4" fill="#ffd166"/>
+    </g>
     </g>
   </svg>
 </div>
@@ -336,6 +336,9 @@
   <p class="muted" id="meSpace"></p>
   <p><button id="btnDevice">📱 Ajouter un appareil (QR code)</button> <a class="iconbtn" href="tuto.html">📖 Le tuto</a></p>
   <details><summary>Avancé</summary>
+    <label>Client ID de l'appli pCloud <input id="mClientId" autocomplete="off" spellcheck="false" placeholder="ex. AbCd12EfGh"></label>
+    <div class="row"><button id="btnClientSave">Enregistrer le Client ID</button></div>
+    <p class="hint">Il sert à se connecter à pCloud et il est glissé dans tes invitations. Le changer ne te déconnecte pas : il servira à la prochaine connexion (et aux prochains liens d'invitation).</p>
     <p><button id="btnLeave" class="danger">Quitter ce collectif sur cet appareil</button></p>
     <p class="hint">Tes fichiers restent dans ton pCloud ; tu pourras revenir avec un lien d'invitation.</p>
   </details>
