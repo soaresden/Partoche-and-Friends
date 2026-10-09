@@ -51,7 +51,7 @@ export class Viewer {
     this.scroller = root.querySelector('.scroller')
     this.pagesEl = root.querySelector('.pages')
     this.player = new Player()
-    this.ink = new Ink(this.scroller, () => this._inkChanged())
+    this.ink = new Ink(this.scroller, () => { this._inkUsed(); this._inkChanged() })
     this.V = null               // état de la partition ouverte
     this.layers = []            // calques des amis (toutes vues)
     this.inkOn = false
@@ -124,15 +124,24 @@ export class Viewer {
   }
 
   // calques des amis : [{ id, who, color, data, updated, visible }] ; data = { <variantKey>: pages } ou tableau (vue par défaut)
-  setLayers(layers) { this.layers = layers || []; this._applyLayers() }
-  _layerPages(data) {
+  setLayers(layers) { this.layers = layers || []; this._applyLayers(true) }
+  _layerMap(data) {   // { vue: pages } ; ancien format (tableau) = vue par défaut
     const V = this.V; if (!V || !data) return null
-    if (Array.isArray(data)) return V.key === V.defaultKey ? data : null
-    return data[V.key] || null
+    return Array.isArray(data) ? { [V.defaultKey]: data } : data
   }
-  _applyLayers() {
-    if (!this.V) return this.ink.setLayers([])
-    this.ink.setLayers(this.layers.map(L => ({ who: L.who, color: L.color, visible: L.visible, data: this.toView(this._layerPages(L.data), false) })))
+  _layerPages(L) { return (this.V && this.V.layerViews && this.V.layerViews.get(L)) || null }
+  // calques des amis recalés sur la vue courante (voir viewInk)
+  async _applyLayers(recompute) {
+    const V = this.V
+    if (!V) return this.ink.setLayers([])
+    if (!V.inkReady) return   // mise en page en cours : buildPages s'en charge
+    if (recompute || !V.layerViews) {
+      const key = V.key, m = new Map()
+      for (const L of this.layers) m.set(L, (await this.viewInk(this._layerMap(L.data))).pages)
+      if (this.V !== V || V.key !== key) return
+      V.layerViews = m
+    }
+    this.ink.setLayers(this.layers.map(L => ({ who: L.who, color: L.color, visible: L.visible, data: this.toView(this._layerPages(L), false) })))
   }
 
   savePrefs() {
@@ -175,14 +184,18 @@ export class Viewer {
     if (V.score) { try { V.score.destroy() } catch { } }
     for (const u of V.svg.values()) URL.revokeObjectURL(u)
     V.svg = new Map()
+    if (V.key && V.inkReady && this._storeInk(this.serializeInk())) this.onInkChange(V.ink)   // traits de la vue qu'on quitte
+    V.inkReady = false
     V.score = sc; V.key = variantKey(opts); V.npages = npages
+    ;(V.geo = V.geo || new Map()).set(V.key, geoOf(pos))
     V.renderedVisible = opts.visible.slice()
     V.pos = pos
     V.events = pos.events.slice().sort((a, b) => a.position - b.position)
     V.elements = new Map(pos.elements.map(e => [e.id, e]))
     V.PW = pos.pageSize.width; V.PH = pos.pageSize.height
     V.lastMeasure = -1
-    this.buildPages()
+    await this.buildPages()
+    if (this.V !== V) return
     scroller.scrollTop = ratio * scroller.scrollHeight
     this.busy('')
     this.drawLoopMarks()
@@ -207,8 +220,15 @@ export class Viewer {
   }
 
   // ---------------------------------------------------------------- pages
-  buildPages() {
+  async buildPages() {
     const V = this.V
+    V.inkReady = false
+    // annotations de toutes les vues (pistes affichées, noms des notes), recalées sur cette mise en page
+    const key = V.key
+    const own = await this.viewInk(V.ink), views = new Map()
+    for (const L of this.layers) views.set(L, (await this.viewInk(this._layerMap(L.data))).pages)
+    if (this.V !== V || V.key !== key) return
+    V.viewOwn = own.pages; V.inkMerged = own.keys; V.layerViews = views
     this.pageObserver.disconnect()
     this.renderQ.length = 0
     this.pagesEl.innerHTML = ''
@@ -241,8 +261,9 @@ export class Viewer {
       V.pageEls = els; V.pageTiles = null
     }
     V.cursorEl = document.createElement('div'); V.cursorEl.className = 'cursor'; V.cursorEl.innerHTML = '<i></i>'
-    this.ink.attach(els, this.toView(V.ink[V.key] || null, true), null, V.tiles ? V.tiles.map(t => ({ y0: t.y0, y1: t.y1 })) : undefined)
-    this._applyLayers()
+    this.ink.attach(els, this.toView(V.viewOwn, true), null, V.tiles ? V.tiles.map(t => ({ y0: t.y0, y1: t.y1 })) : undefined)
+    V.inkReady = true
+    this._applyLayers(true)   // calques arrivés pendant la mise en page
     this.ink.setEnabled(this.inkOn)
   }
 
@@ -265,7 +286,7 @@ export class Viewer {
       return { page: q.page, y0: Math.max(o0, q.y - padT) / V.PH, y1: Math.min(o1, q.y2 + padB) / V.PH, o0: o0 / V.PH, o1: o1 / V.PH }
     })
     // la fenêtre de chaque ligne s'agrandit pour montrer les annotations qui lui appartiennent (les miennes et celles des amis)
-    const srcs = [V.ink[V.key] || [], ...this.layers.map(L => this._layerPages(L.data) || [])]
+    const srcs = [V.viewOwn || [], ...this.layers.map(L => this._layerPages(L) || [])]
     for (const src of srcs) (src || []).forEach((pg, p) => {
       for (const o of pg || []) {
         const ys = o.t === 'text' ? [o.y - 0.03, o.y + 0.01] : (o.p || []).map(q => q[1])
@@ -297,6 +318,48 @@ export class Viewer {
       return own ? pg.filter(o => { const y = objY(o); return y >= t.o0 && y < t.o1 }) : pg
     })
   }
+  // ---- annotations indépendantes des pistes affichées ----
+  // Les traits sont rangés par « vue » (pistes, noms des notes) en coordonnées de page. Afficher ou cacher une piste
+  // change la mise en page : on recale chaque trait sur SA mesure (même place dans la mesure, même hauteur sous le haut
+  // de la ligne), puis, dès qu'on annote, tout est rangé dans la vue courante.
+  geoFor(k) {
+    const V = this.V
+    if (!V.geo) V.geo = new Map()
+    if (V.geo.has(k)) return V.geo.get(k)
+    const v = parseViewKey(k); if (!v || !V.mf || v.visible.length !== V.visible.length) return null
+    const mf = V.mf
+    const p = (async () => {   // mise en page de cette vue, sans dessiner les pages : juste la place des mesures
+      try {
+        const W = await engine()
+        const sc = await W.load('mscz', mf.build({ visible: v.visible, names: v.notes.names, octave: v.notes.octave, above: v.notes.above, hideManual: v.notes.names !== 'off' && v.notes.hideManual }), [], true)
+        try { return geoOf(await sc.measurePositions()) } finally { try { sc.destroy() } catch { } }
+      } catch (e) { console.warn('annotations de la vue', k, e); return null }
+    })()
+    V.geo.set(k, p); return p
+  }
+  // { vue: pages } -> pages de la vue courante (toutes les vues réunies) + les vues reprises
+  async viewInk(map) {
+    const V = this.V
+    const keys = Object.keys(map || {}).filter(k => inkCount(map[k]) > 0)
+    if (!keys.length) return { pages: null, keys: [] }
+    if (keys.length === 1 && keys[0] === V.key) return { pages: map[V.key], keys }
+    const n = V.npages, dst = await this.geoFor(V.key)
+    const pages = Array.from({ length: n }, () => []), used = []
+    for (const k of keys) {
+      if (k === V.key) { map[k].forEach((l, i) => pages[Math.min(i, n - 1)].push(...(l || []))); used.push(k); continue }
+      const src = dst && await this.geoFor(k); if (!src) continue
+      projectInk(map[k], src, dst, n).forEach((l, i) => pages[i].push(...l)); used.push(k)
+    }
+    return { pages: used.length ? pages : null, keys: used }
+  }
+  // range les traits affichés dans la vue courante ; les vues reprises (déjà affichées ici) disparaissent
+  _storeInk(pages) {
+    const V = this.V; if (!V || !V.key || !V.inkReady) return false
+    for (const k of V.inkMerged || []) if (k !== V.key) delete V.ink[k]
+    V.inkMerged = [V.key]
+    if (pages.some(p => p && p.length)) V.ink[V.key] = pages; else delete V.ink[V.key]
+    return true
+  }
   serializeInk() {
     const V = this.V
     const arr = this.ink.serialize()
@@ -309,9 +372,7 @@ export class Viewer {
   _inkChanged() {
     const V = this.V
     if (!V || !V.key) return
-    const pages = this.serializeInk()
-    if (pages.some(p => p && p.length)) V.ink[V.key] = pages
-    else delete V.ink[V.key]
+    if (!this._storeInk(this.serializeInk())) return
     this.onInkChange(V.ink)
   }
   pageElFor(el) {
@@ -322,12 +383,11 @@ export class Viewer {
     const t = ts.find(t => y >= t.o0 && y < t.o1) || ts[0]
     return t && t.el
   }
-  relayoutPages() {
+  async relayoutPages() {
     const V = this.V
     if (!V || !V.score) return
-    const pages = this.serializeInk()
-    if (pages.some(p => p.length)) V.ink[V.key] = pages
-    this.buildPages()
+    this._storeInk(this.serializeInk())
+    await this.buildPages()
     for (const i of V.svg.keys()) this.setImg(i)
     this.drawLoopMarks(); this.updateCursor(true)
   }
@@ -430,13 +490,13 @@ export class Viewer {
     this.$$('#vLayoutPop [data-l]').forEach(b => b.classList.toggle('on', b.dataset.l === V.layout))
     requestAnimationFrame(() => this.ink.resize())
   }
-  setLayout(l) {
+  async setLayout(l) {
     const V = this.V
     if (!V || l === V.layout) return
     const pg = this.visiblePage()
     const rebuild = l === 'line' || V.layout === 'line'
     V.layout = l; this.G.layout = l; this.saveG(); this.applyLayout(); this.savePrefs()
-    if (rebuild) this.relayoutPages()
+    if (rebuild) await this.relayoutPages()
     requestAnimationFrame(() => {
       const el = V.pageEls && V.pageEls[pg]; if (!el) return
       if (isHoriz(l)) { this.scroller.scrollTop = 0; this.scroller.scrollLeft = (l === 'line' ? el.parentElement.offsetLeft : el.offsetLeft) - 14 }
@@ -813,7 +873,52 @@ export class Viewer {
       box.appendChild(b)
     }
   }
+  // ---- raccourcis : les outils, formes et emojis les plus utilisés, directement dans la barre ----
+  _favKey() { const ink = this.ink; return ink.tool === 'shape' ? 'shape:' + ink.shape : ink.tool === 'emoji' ? 'emoji:' + ink.emoji : ink.tool }
+  _favCount(k) { if (!k) return; const G = this.G; G.inkUse = G.inkUse || {}; G.inkUse[k] = (G.inkUse[k] || 0) + 1 }
+  _inkUsed() {   // un trait / une forme / un emoji vient d'être posé : on le compte
+    const st = this.ink.undoStack, op = st && st[st.length - 1]
+    this._counted = this._counted || new WeakSet()
+    if (!op || op.op !== 'add' || !op.s || this._counted.has(op.s)) return
+    this._counted.add(op.s); const o = op.s
+    this._favCount(o.t === 'text' ? (o.emoji ? 'emoji:' + o.text : 'text') : o.sh ? 'shape:' + o.sh : o.t)
+    clearTimeout(this._favSave); this._favSave = setTimeout(() => this.saveG(), 3000)
+    this.paintFavs()
+  }
+  favList() {
+    const use = this.G.inkUse || {}
+    const top = Object.keys(use).filter(k => use[k] >= 2).sort((a, b) => use[b] - use[a])
+    const out = []
+    for (const k of [...top, ...FAV_DEFAULT]) { if (!out.includes(k)) out.push(k); if (out.length >= 7) break }
+    if (!out.includes('eraser')) out[out.length - 1] = 'eraser'   // la gomme reste toujours à portée
+    return out
+  }
+  paintFavs() {
+    const box = this.$('#vFavs'); if (!box) return
+    const cur = this._favKey()
+    box.innerHTML = ''
+    for (const k of this.favList()) {
+      const t = k.split(':')[0], v = k.slice(k.indexOf(':') + 1)
+      const b = document.createElement('button'); b.className = 'btn icon fav' + (k === cur ? ' on' : '')
+      if (t === 'emoji') { b.innerHTML = '<span class="emo"></span>'; b.firstChild.textContent = v; b.title = v }
+      else if (t === 'shape') { const sb = this.$(`#vShapeRow [data-shape="${v}"]`); b.innerHTML = sb ? sb.querySelector('svg').outerHTML : '?'; b.title = (sb && sb.title) || v }
+      else { b.innerHTML = `<svg class="ic"><use href="${TOOL_ICON[t] || '#i-pen'}"/></svg>`; b.title = FAV_NAME[t] || t }
+      b.onclick = () => this.useFav(k)
+      box.appendChild(b)
+    }
+  }
+  useFav(k) {
+    const ink = this.ink, G = this.G
+    this.closePops()
+    const t = k.split(':')[0], v = k.slice(k.indexOf(':') + 1)
+    if (t === 'shape') { ink.setTool('shape'); ink.shape = G.shape = v; G.tool = 'shape' }
+    else if (t === 'emoji') { ink.emoji = G.emoji = v; ink.setTool('emoji'); G.tool = 'emoji' }
+    else { ink.setTool(t); G.tool = t }
+    if (t === 'eraser') this._favCount('eraser')
+    this.saveG(); this.paintInkbar()
+  }
   paintInkbar() {
+    this.paintFavs()
     const ink = this.ink
     this.$('#vToolIcon').setAttribute('href', TOOL_ICON[ink.tool] || '#i-pen')
     const emo = ink.tool === 'emoji', shp = ink.tool === 'shape'
@@ -1161,6 +1266,52 @@ export class Viewer {
 
 // position verticale « propriétaire » d'une annotation (pour la ligne continue)
 const objY = o => o.t === 'text' ? o.y : (o.p && o.p.length ? o.p.reduce((a, q) => a + q[1], 0) / o.p.length : 0)
+const FAV_DEFAULT = ['pen', 'hl', 'shape:downbow', 'shape:upbow', 'eraser', 'text']
+const FAV_NAME = { pen: 'Stylo', hl: 'Surligneur', text: 'Texte', eraser: 'Gomme' }
+// ---- recalage des annotations d'une vue à l'autre (même mesure) ----
+const inkCount = a => (Array.isArray(a) ? a : []).reduce((n, p) => n + ((p && p.length) || 0), 0)
+// clé de vue « 0110-solfege-0-1-1 » -> { visible, notes }
+function parseViewKey(k) {
+  const m = /^([01]+)-(off|letter|solfege)-([01])-([01])-([01])$/.exec(k || ''); if (!m) return null
+  return { visible: m[1].split('').map(c => c === '1'), notes: { names: m[2], octave: m[3] === '1', above: m[4] === '1', hideManual: m[2] === 'off' ? true : m[5] === '1' } }
+}
+const geoOf = pos => ({ W: pos.pageSize.width, H: pos.pageSize.height, m: new Map(pos.elements.map(e => [e.id, e])) })
+function inkAnchor(o) {
+  if (o.t === 'text') return [o.x, o.y]
+  const p = o.p || []; if (!p.length) return null
+  let x = 0, y = 0; for (const q of p) { x += q[0]; y += q[1] }
+  return [x / p.length, y / p.length]
+}
+function nearestMeasure(g, page, x, y) {
+  let best = null, bd = Infinity
+  for (const e of g.m.values()) {
+    if (e.page !== page) continue
+    const dx = Math.max(0, e.x - x, x - e.x - e.sx), dy = Math.max(0, e.y - y, y - e.y - e.sy)
+    const d = dx * dx + 4 * dy * dy   // on préfère la mesure de la même ligne
+    if (d < bd) { bd = d; best = e }
+  }
+  return best
+}
+function projectInk(pages, src, dst, n) {
+  const out = Array.from({ length: n }, () => [])
+  const r4 = v => Math.round(v * 10000) / 10000
+  ;(pages || []).forEach((list, pg) => {
+    for (const o of list || []) {
+      const a = inkAnchor(o), c = JSON.parse(JSON.stringify(o))
+      let to = Math.min(pg, n - 1)
+      const m = a && nearestMeasure(src, pg, a[0] * src.W, a[1] * src.H), t = m && dst.m.get(m.id)
+      if (t) {
+        const nx = t.x + (a[0] * src.W - m.x) * (t.sx / (m.sx || 1)), ny = t.y + (a[1] * src.H - m.y)
+        const dx = nx / dst.W - a[0], dy = ny / dst.H - a[1]
+        if (c.t === 'text') { c.x = r4(c.x + dx); c.y = r4(c.y + dy) }
+        else c.p = c.p.map(q => [r4(q[0] + dx), r4(q[1] + dy), ...q.slice(2)])
+        to = Math.min(t.page, n - 1)
+      }
+      out[to].push(c)
+    }
+  })
+  return out
+}
 
 // appui long (retirer un emoji de la liste)
 function longPress(el, fn) {

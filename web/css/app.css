@@ -558,3 +558,12 @@ body.guest #btnAdd, body.guest #btnInvite, body.guest .mywork, body.guest [data-
 body.guest #vPen, body.guest #chatForm, body.guest #btnDevice { display: none !important; }
 body.guest .meta-edit input { pointer-events: none; opacity: .75; }
 body.guest #vChat::after { content: "👀 Connecte ton pCloud (☁️ Contribuer) pour écrire."; display: block; padding: 10px 14px; color: var(--muted); font-size: 13px; border-top: 1px solid #2c3039; }
+/* barre d'annotation plus grande + raccourcis (outils / formes / emojis les plus utilisés) */
+#viewer .inkbar { gap: 6px; padding: 8px 10px; border-radius: 16px; }
+#viewer .inkbar .btn { height: 50px; min-width: 50px; }
+#viewer .inkbar .btn .ic { width: 26px; height: 26px; }
+#viewer .inkbar .swatch { width: 36px; height: 36px; }
+#viewer .favs { display: flex; align-items: center; gap: 4px; }
+#viewer .favs .fav { padding: 0 6px; border: 2px solid transparent; }
+#viewer .favs .fav.on { background: var(--panel2); border-color: var(--accent); }
+#viewer .favs .fav .emo { font-size: 26px; line-height: 1; }
