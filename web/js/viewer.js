@@ -478,7 +478,7 @@ export class Viewer {
     }
     this.savePrefs()
   }
-  setVh() { this.pagesEl.style.setProperty('--vh', this.scroller.clientHeight + 'px') }
+  setVh() { const h = this.scroller.clientHeight; if (h > 40) this.pagesEl.style.setProperty('--vh', h + 'px') }   // écran caché : on garde l'ancienne hauteur (sinon pages invisibles)
   applyLayout() {
     const V = this.V
     this.setVh()
@@ -1071,6 +1071,8 @@ export class Viewer {
     scroller.addEventListener('touchend', e => { if (e.touches.length < 2) pinch = null })
     scroller.addEventListener('wheel', e => { if (e.ctrlKey && this.V) { e.preventDefault(); this.setZoom(this.V.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1)) } }, { passive: false })
     let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (this.V) { this.setVh(); this.sizeTiles() } ink.resize() }, 150) })
+    // la zone de la partition change de taille (affichage du lecteur, rotation…) : pages et tuiles suivent
+    try { let lastH = 0; new ResizeObserver(() => { const h = this.scroller.clientHeight; if (!this.V || h <= 40 || h === lastH) return; lastH = h; this.setVh(); this.sizeTiles(); ink.resize(); requestAnimationFrame(() => this.kickVisible()) }).observe(this.scroller) } catch { }
 
     // lecture
     $('#vPlay').onclick = () => this.togglePlay()
