@@ -67,9 +67,9 @@ Tout est expliqué pas à pas dans **[le tuto](https://soaresden.github.io/Parto
 
 Le Client ID n'est pas dans le dépôt : sur un PC, il va dans `web/config.local.js` (ignoré par git) ; sinon l'appli le demande ou le reçoit par l'invitation.
 
-### 💻 Sur son ordi, sans GitHub ni pCloud
+### 💻 Sur son ordi, tout seul (sans GitHub ni pCloud)
 
-**[Partoche-and-Friends-PC.zip](https://github.com/soaresden/Partoche-and-Friends/releases/download/pc/Partoche-and-Friends-PC.zip)** : décompresser, mettre ses `.mscz` dans le dossier **Partitions** (sous-dossiers compris), double-cliquer sur **Lancer Partoche and Friends.bat** (Windows, rien à installer) ou **Lancer (Mac ou Linux).command**. L'appli s'ouvre sur <http://localhost:53682/> → « 📁 Mes partitions sur cet ordi ». Tout le lecteur (tablature, annotations, boucle…) marche ; rien n'est partagé, et pCloud reste possible depuis cette version pour jouer avec ses potes. Le zip est refait automatiquement à chaque mise à jour (`.github/workflows/zip.yml`, lanceurs dans `tools/pc/`).
+**[Partoche-and-Friends-PC.zip](https://github.com/soaresden/Partoche-and-Friends/releases/download/pc/Partoche-and-Friends-PC.zip)** : décompresser, mettre ses `.mscz` dans le dossier **Partitions** (sous-dossiers compris), double-cliquer sur **Lancer Partoche and Friends.bat** (Windows, rien à installer) ou **Lancer (Mac ou Linux).command**. L'appli s'ouvre sur <http://localhost:53682/>, on donne son prénom et c'est prêt. Bibliothèque perso : tout le lecteur (tablature, annotations, boucle…), rien n'est partagé, pas de pCloud ni de compte. Le zip est refait automatiquement à chaque mise à jour (`.github/workflows/zip.yml`, lanceurs dans `tools/pc/`).
 
 **Tester depuis le dépôt** : double-cliquer sur `Lancer.bat` (Python requis) ; les partitions de test vont dans `Partitions/` à la racine (ignoré par git).
 

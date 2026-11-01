@@ -39,6 +39,9 @@ function step(name, err) {
   setupMsg(err || '')
 }
 async function boot() {
+  // version zip (lanceur sur l'ordi) : uniquement le dossier « Partitions », pas de pCloud ni de partage
+  if (lsGet('maf:space', '') !== 'local' && await localFolder()) { lsSet('maf:space', 'local'); lsSet('maf:intent', 'new') }
+  if (lsGet('maf:space', '') === 'local') { document.body.classList.add('solo'); history.replaceState(null, '', location.pathname) }
   if (takeOAuthRedirect()) lsSet('maf:space', 'pcloud')
   const dev = readDeviceLink(location.hash)
   if (dev) { history.replaceState(null, '', location.pathname + location.search); return setupDevice(dev) }
@@ -92,15 +95,7 @@ for (const b of $$('[data-back]')) b.onclick = () => {
 $('#btnSetup').onclick = () => setupStart()
 $('#btnResume').onclick = () => { lsSet('maf:intent', 'resume'); setupSpace() }
 $('#btnDemo').onclick = () => { lsSet('maf:space', 'demo'); lsSet('maf:intent', 'new'); boot() }
-$('#btnLocal').onclick = () => { lsSet('maf:space', 'local'); lsSet('maf:intent', 'new'); boot() }
-// version zip lancée sur l'ordi : le dossier « Partitions » est proposé en premier
-async function welcome() {
-  step('Welcome')
-  const lf = await localFolder()
-  $('#localBox').hidden = !lf
-  $('#btnSetup').classList.toggle('primary', !lf)
-  if (lf) $('#localPath').textContent = lf.path || lf.folder || 'Partitions'
-}
+function welcome() { step('Welcome') }
 
 // ---- 1. partir de rien / j'ai un lien ----
 function setupStart(pick) {
@@ -513,6 +508,7 @@ function renderList() {
     L.innerHTML = why.length
       ? `<div class="empty">Aucun morceau ne correspond à ${why.join(', ')}.<br><button id="btnShowAll" class="primary" style="margin-top:10px">Tout réafficher</button></div>`
       : GUEST() ? '<div class="empty">Aucune partition visible pour l’instant.<br>Clique sur <b>⟳</b> dans un instant ; si ça reste vide, les dossiers des membres sont peut-être injoignables (👥 Membres).</div>'
+      : space.kind === 'local' ? '<div class="empty">Aucune partition pour l’instant.<br>Mets tes fichiers <b>.mscz</b> dans le dossier <b>Partitions</b> (à côté du lanceur), puis <b>⟳ Actualiser</b>.</div>'
       : '<div class="empty">Aucune partition pour l’instant.<br>Ajoute les tiennes avec <b>＋ Partition</b>, invite tes amis avec <b>🤝 Inviter</b>.</div>'
     if ($('#btnShowAll')) $('#btnShowAll').onclick = clearFilters
     return

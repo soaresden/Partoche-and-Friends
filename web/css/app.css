@@ -574,3 +574,8 @@ body.guest #vChat::after { content: "👀 Connecte ton pCloud (☁️ Contribuer
 #vInstrPop #vTabPart { flex: 1; max-width: none; }
 #vInstrPop #vShiftVal { flex: 1; text-align: center; font-weight: 600; font-size: 13px; }
 #vInstrPop p.small { margin: 0 2px 8px; }
+
+/* version zip (sur l'ordi) : bibliothèque perso, rien de pCloud ni du partage */
+body.solo #btnInvite, body.solo #btnTuto, body.solo .tabs [data-tab=members], body.solo #memberDots, body.solo #filterMember,
+body.solo #btnDevice, body.solo #btnDevice + .iconbtn, body.solo #meDlg details, body.solo [data-back],
+body.solo #vChatBtn, body.solo #vChat, body.solo .c-cnt, body.solo .c-com, body.solo #pieceDlg h3, body.solo #pdWork { display: none !important; }
