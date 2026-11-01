@@ -35,6 +35,7 @@ C'est la suite de **[Partoche](https://github.com/soaresden/Partoche)** (élève
 
 - 📚 **Bibliothèque en tableau** : une ligne par morceau, **une colonne par personne** (💡 envie · 🛠️ je bosse dessus · ✅ prêt, sa partie, 📄 qui a la partition). Clic dans sa colonne pour changer son statut.
 - 🎼 **Le lecteur complet de Partoche** : barre de lecture en bas, vitesse 25–150 %, **boucle A–B**, curseur qui suit la musique, pistes (afficher, muet, solo, volume, **instrument par partie**), noms des notes (A B C / Do Ré Mi), 4 mises en page, zoom, accordeur.
+- 🎸 **Mon instrument** : **tablature** basse (4 ou 5 cordes), guitare ou ukulélé calculée sous la portée (ou seule), **transposition** du morceau (le son suit) et lecture pour un instrument en Si♭ / Mi♭ / Fa (le son ne change pas).
 - ✏️ **Annotations partagées** : stylo à pression, surligneur, texte, gomme, formes, emojis… chacun dans sa couleur, **un calque par ami** à afficher ou masquer, mis à jour en direct.
 - 💬 **Chat dans la partition**, à droite : un fil par morceau.
 - ＋ **Ajouter ses partitions** (`.mscz`) et **📥 copier chez soi** celle d'un pote.

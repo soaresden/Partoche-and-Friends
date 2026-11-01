@@ -83,6 +83,9 @@ export class MsczFile {
         kids(p, 'Staff').some(s => { const st = kid(s, 'StaffType'); return st && st.getAttribute('group') === 'percussion' })
       const transpose = inst ? parseInt(txt(inst, 'transposeChromatic') || '0', 10) : 0
       const part = { index: this.parts.length, name, staves, drum, visible: txt(p, 'show') !== '0', transpose, firstStaff: staffIndex }
+      const body = kids(score, 'Staff').slice(staffIndex, staffIndex + staves.length)
+      const ps = body.flatMap(st => Array.from(st.getElementsByTagName('pitch'), e => +e.textContent)).filter(n => n > 0)
+      part.avgPitch = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : null
       staves.forEach(id => { this.staffToPart[id] = part.index })
       staffIndex += staves.length
       this.parts.push(part)
@@ -184,6 +187,9 @@ export class MsczFile {
       }
     }
 
+    // transformations propres à Partoche and Friends (tablature, transposition : js/instrument.js)
+    if (opts.transform) opts.transform(doc, score, this)
+
     let styleVals = doNames ? { lyricsOddFontSize: '9', lyricsEvenFontSize: '9', lyricsMinDistance: '0.5', lyricsMinTopDistance: '0.6' } : null
     if (opts.line) {
       // « une seule ligne » : page très large et juste assez haute pour un système ; plus de sauts de ligne/page
@@ -193,7 +199,7 @@ export class MsczFile {
       }
       const firstStaff = kids(score, 'Staff')[0]
       const nMeas = firstStaff ? kids(firstStaff, 'Measure').length : 50
-      const nStaves = parts.reduce((n, p, i) => n + ((opts.visible && opts.visible[i] === false) ? 0 : kids(p, 'Staff').length), 0)
+      const nStaves = kids(score, 'Part').reduce((n, p) => n + (txt(p, 'show') === '0' ? 0 : kids(p, 'Staff').length), 0)
       const w = Math.min(1200, Math.max(14, nMeas * 2.1)), h = 1.6 + Math.max(1, nStaves) * (doNames ? 1.25 : 0.95)
       styleVals = Object.assign(styleVals || {}, {
         pageWidth: w.toFixed(2), pageHeight: h.toFixed(2), pagePrintableWidth: (w - 0.6).toFixed(2),

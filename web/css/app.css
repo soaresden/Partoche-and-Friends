@@ -567,3 +567,10 @@ body.guest #vChat::after { content: "👀 Connecte ton pCloud (☁️ Contribuer
 #viewer .favs .fav { padding: 0 6px; border: 2px solid transparent; }
 #viewer .favs .fav.on { background: var(--panel2); border-color: var(--accent); }
 #viewer .favs .fav .emo { font-size: 26px; line-height: 1; }
+
+/* mon instrument (tablature, transposition) */
+#vInstrBtn .emo { font-size: 18px; line-height: 20px; }
+#vInstrPop #vReadAs { width: 100%; max-width: none; padding: 7px 8px; font-size: 13px; }
+#vInstrPop #vTabPart { flex: 1; max-width: none; }
+#vInstrPop #vShiftVal { flex: 1; text-align: center; font-weight: 600; font-size: 13px; }
+#vInstrPop p.small { margin: 0 2px 8px; }

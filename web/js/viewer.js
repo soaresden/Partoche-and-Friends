@@ -11,6 +11,7 @@ import { Player, GM } from './partoche/audio.js'
 import { Ink } from './partoche/ink.js'
 import { Tuner } from './partoche/tuner.js'
 import { lsGet, lsSet } from './partoche/store.js'
+import { TABS, READ_AS, pickTabPart, transposeDoc, addTab, shiftLabel } from './instrument.js'
 
 let WM = null
 async function engine() {
@@ -22,7 +23,16 @@ const debounce = (fn, ms) => { let t = 0; return (...a) => { clearTimeout(t); t 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') }
 
 // clé d'une « vue » : pistes affichées + options des noms de notes (même format que Partoche)
+//   + « -T<tablature>.<partie>.<seule> » et « -X<demi-tons> » seulement si utilisés (les anciennes clés restent valables)
 export const variantKey = o => [o.visible.map(v => v ? 1 : 0).join(''), o.names, o.octave ? 1 : 0, o.above ? 1 : 0, o.hideManual ? 1 : 0].join('-')
+  + (o.tab && o.tabPart >= 0 ? `-T${o.tab}.${o.tabPart}.${o.tabOnly ? 1 : 0}` : '') + (o.xpose ? '-X' + (o.xpose < 0 ? 'm' + -o.xpose : o.xpose) : '')
+// .mscz à rendre pour une vue (tablature et transposition comprises)
+function buildView(mf, o) {
+  const xpose = o.xpose | 0, tab = o.tab && o.tabPart >= 0 ? o.tab : ''
+  return mf.build(Object.assign({}, o, {
+    transform: xpose || tab ? (doc, score) => { if (xpose) transposeDoc(score, xpose, mf.parts); if (tab) addTab(doc, score, o.tabPart, tab, o.tabOnly) } : null,
+  }))
+}
 
 const LAYOUTS = ['vertical', 'two', 'horizontal', 'line']
 const LAYOUT_ICON = { vertical: '#i-1up', two: '#i-2up', horizontal: '#i-hup', line: '#i-lineup' }
@@ -57,6 +67,7 @@ export class Viewer {
     this.inkOn = false
     this.memberColor = ''
     this.G = Object.assign({ follow: true, vol: 1 }, lsGet(G_KEY, {}) || {})
+    this.G.instr = Object.assign({ tab: '', only: false, readAs: 0 }, this.G.instr || {})   // « mon instrument » : toutes les partitions
     this.renderQ = []; this.rendering = false
     this.userScrollAt = 0; this.seekDragging = false
     this._wire()
@@ -101,6 +112,7 @@ export class Viewer {
       layout: LAYOUTS.includes(prefs.layout) ? prefs.layout : (LAYOUTS.includes(G.layout) ? G.layout : 'vertical'),
       loop: null, loopPick: null, svg: new Map(),
       notes: Object.assign({ names: 'off', octave: false, above: false, hideManual: true }, prefs.notes || {}),
+      tabPart: prefs.tabPart ?? -1, shift: prefs.shift | 0,   // partie en tablature (-1 = au choix de l'appli), transposition du morceau
       ink: {},
     }
     if (!V.visible.some(Boolean)) V.visible[0] = true
@@ -117,7 +129,7 @@ export class Viewer {
     this.setPlayIcon(false)
     this.$('#vCur').textContent = '0:00'; this.$('#vSeek').value = 0
     this.buildTrackList()
-    this.updateNamesUI()
+    this.updateNamesUI(); this.updateInstrUI()
     this.scroller.scrollTop = 0; this.scroller.scrollLeft = 0
     await this.renderVariant(true)
     return { parts: mf.parts.map(p => p.name), pages: V.npages || 0 }
@@ -146,12 +158,21 @@ export class Viewer {
 
   savePrefs() {
     const V = this.V; if (!V) return
-    lsSet(PREFS_KEY + V.fileKey, { visible: V.visible, mix: V.mix, rate: V.rate, zoom: V.zoom, layout: V.layout, notes: V.notes, sound: V.sound || {} })
+    lsSet(PREFS_KEY + V.fileKey, { visible: V.visible, mix: V.mix, rate: V.rate, zoom: V.zoom, layout: V.layout, notes: V.notes, sound: V.sound || {}, tabPart: V.tabPart, shift: V.shift })
   }
 
   variantOpts() {
-    const N = this.V.notes
-    return { visible: this.V.visible.slice(), names: N.names, octave: N.octave, above: N.above, hideManual: N.names !== 'off' && N.hideManual }
+    const V = this.V, N = V.notes, I = this.G.instr
+    const tabPart = I.tab ? this.tabPartFor(V) : -1
+    return {
+      visible: V.visible.slice(), names: N.names, octave: N.octave, above: N.above, hideManual: N.names !== 'off' && N.hideManual,
+      tab: tabPart >= 0 ? I.tab : '', tabPart, tabOnly: tabPart >= 0 && !!I.only, xpose: V.shift + (I.readAs | 0), sndShift: V.shift,
+    }
+  }
+  tabPartFor(V) {
+    const I = this.G.instr, p = V.mf.parts
+    if (!TABS[I.tab]) return -1
+    return V.tabPart >= 0 && p[V.tabPart] && !p[V.tabPart].drum ? V.tabPart : pickTabPart(p, I.tab)
   }
 
   async renderVariant(first) {
@@ -161,16 +182,24 @@ export class Viewer {
     this.busy(first ? 'Mise en page de la partition…' : 'Mise à jour de la partition…')
     let sc, npages, pos
     try {
-      const bytes = V.mf.build(opts)
+      const bytes = buildView(V.mf, opts)
       const W = await engine()
       sc = await W.load('mscz', bytes, [], true)
       if (tok !== V.tok || this.V !== V) { sc.destroy(); return }
       npages = await sc.npages()
       pos = await sc.measurePositions()
-      if (!V.midiReady) {
-        const midiBytes = await sc.saveMidi(true, true)
+      if (!V.midiReady || V.midiShift !== opts.sndShift) {
+        // le son : sans la tablature (muette, en double) et sans la transposition « je lis pour un instrument en Si♭… »
+        let msc = sc
+        if (opts.tab || opts.xpose !== opts.sndShift) msc = await W.load('mscz', buildView(V.mf, Object.assign({}, opts, { tab: '', xpose: opts.sndShift, names: 'off' })), [], true)
+        let midiBytes
+        try { midiBytes = await msc.saveMidi(true, true) } finally { if (msc !== sc) msc.destroy() }
+        if (tok !== V.tok || this.V !== V) { sc.destroy(); return }
+        const again = V.midiReady, player = this.player, wasPlaying = again && player.playing, at = again ? player.position : 0
+        if (wasPlaying) { player.pause(); this.setPlayIcon(false) }
         V.midi = parseMidi(midiBytes); this.setupPlayer(V.midi)
-        V.midiReady = true
+        if (at) try { player.seek(at) } catch { }
+        V.midiReady = true; V.midiShift = opts.sndShift
         setTimeout(() => { if (this.V === V) this.ensureSounds(true) }, 50)   // préchargement des instruments
       }
     } catch (e) {
@@ -331,7 +360,7 @@ export class Viewer {
     const p = (async () => {   // mise en page de cette vue, sans dessiner les pages : juste la place des mesures
       try {
         const W = await engine()
-        const sc = await W.load('mscz', mf.build({ visible: v.visible, names: v.notes.names, octave: v.notes.octave, above: v.notes.above, hideManual: v.notes.names !== 'off' && v.notes.hideManual }), [], true)
+        const sc = await W.load('mscz', buildView(mf, Object.assign({ visible: v.visible, names: v.notes.names, octave: v.notes.octave, above: v.notes.above, hideManual: v.notes.names !== 'off' && v.notes.hideManual }, v.instr)), [], true)
         try { return geoOf(await sc.measurePositions()) } finally { try { sc.destroy() } catch { } }
       } catch (e) { console.warn('annotations de la vue', k, e); return null }
     })()
@@ -824,6 +853,21 @@ export class Viewer {
     for (const s of ['#vOptOctave', '#vOptAbove', '#vOptHideManual']) { this.$(s).disabled = N.names === 'off'; this.$(s).parentElement.style.opacity = N.names === 'off' ? .45 : 1 }
   }
 
+  // ---------------------------------------------------------------- mon instrument (tablature, transposition)
+  updateInstrUI() {
+    const V = this.V, I = this.G.instr
+    this.$$('#vTabSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === (I.tab || '')))
+    const sel = this.$('#vTabPart'), tp = V ? this.tabPartFor(V) : -1
+    sel.innerHTML = V ? V.mf.parts.filter(p => !p.drum).map(p => `<option value="${p.index}">${p.name.replace(/[<&]/g, '')}</option>`).join('') : ''
+    if (tp >= 0) sel.value = String(tp)
+    this.$('#vTabRow').hidden = !I.tab
+    this.$('#vTabOnly').checked = !!I.only
+    this.$('#vShiftVal').textContent = shiftLabel(V ? V.shift : 0)
+    this.$('#vReadAs').value = String(I.readAs | 0)
+    this.$('#vInstrBtn').classList.toggle('on', !!(I.tab || (V && V.shift) || I.readAs))
+    this.$('#vInstrLbl').textContent = I.tab ? TABS[I.tab].short : 'Instrument'
+  }
+
   // ---------------------------------------------------------------- popovers
   togglePop(sel, anchor, dir) {
     const pop = this.$(sel)
@@ -1186,6 +1230,20 @@ export class Viewer {
     }
     $('#vNamesBtn').onclick = e => this.togglePop('#vNamesPop', e.currentTarget, 'down')
 
+    // mon instrument : tablature et « je lis en Si♭ » pour toutes les partitions ; transposition propre au morceau
+    $('#vReadAs').innerHTML = READ_AS.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')
+    const instrChanged = msg => { this.saveG(); this.savePrefs(); this.updateInstrUI(); if (msg) this.toast(msg, 1800); rerenderSoon() }
+    $$('#vTabSeg button').forEach(b => b.onclick = () => {
+      const I = this.G.instr; if ((I.tab || '') === b.dataset.v) return
+      I.tab = b.dataset.v; instrChanged(I.tab ? '🎸 Tablature ' + TABS[I.tab].label.toLowerCase() : 'Tablature retirée')
+    })
+    $('#vTabPart').onchange = e => { const V = this.V; if (!V) return; V.tabPart = +e.target.value; instrChanged() }
+    $('#vTabOnly').onchange = e => { this.G.instr.only = e.target.checked; instrChanged() }
+    const shift = d => { const V = this.V; if (!V) return; V.shift = d === 0 ? 0 : Math.max(-12, Math.min(12, V.shift + d)); instrChanged() }
+    $('#vShiftDown').onclick = () => shift(-1); $('#vShiftUp').onclick = () => shift(1); $('#vShiftReset').onclick = () => shift(0)
+    $('#vReadAs').onchange = e => { this.G.instr.readAs = +e.target.value; instrChanged() }
+    $('#vInstrBtn').onclick = e => this.togglePop('#vInstrPop', e.currentTarget, 'down')
+
     // popovers : un toucher ailleurs les ferme
     document.addEventListener('pointerdown', e => {
       if (!e.target.closest('.pop') && !e.target.closest('.popopen')) this.closePops()
@@ -1272,10 +1330,11 @@ const FAV_DEFAULT = ['pen', 'hl', 'shape:downbow', 'shape:upbow', 'eraser', 'tex
 const FAV_NAME = { pen: 'Stylo', hl: 'Surligneur', text: 'Texte', eraser: 'Gomme' }
 // ---- recalage des annotations d'une vue à l'autre (même mesure) ----
 const inkCount = a => (Array.isArray(a) ? a : []).reduce((n, p) => n + ((p && p.length) || 0), 0)
-// clé de vue « 0110-solfege-0-1-1 » -> { visible, notes }
+// clé de vue « 0110-solfege-0-1-1[-Tbass4.1.0][-Xm2] » -> { visible, notes, instr }
 function parseViewKey(k) {
-  const m = /^([01]+)-(off|letter|solfege)-([01])-([01])-([01])$/.exec(k || ''); if (!m) return null
-  return { visible: m[1].split('').map(c => c === '1'), notes: { names: m[2], octave: m[3] === '1', above: m[4] === '1', hideManual: m[2] === 'off' ? true : m[5] === '1' } }
+  const m = /^([01]+)-(off|letter|solfege)-([01])-([01])-([01])(?:-T(\w+)\.(\d+)\.([01]))?(?:-X(m?)(\d+))?$/.exec(k || ''); if (!m) return null
+  const instr = { tab: m[6] && TABS[m[6]] ? m[6] : '', tabPart: m[6] ? +m[7] : -1, tabOnly: m[8] === '1', xpose: m[10] ? (m[9] ? -m[10] : +m[10]) : 0 }
+  return { visible: m[1].split('').map(c => c === '1'), notes: { names: m[2], octave: m[3] === '1', above: m[4] === '1', hideManual: m[2] === 'off' ? true : m[5] === '1' }, instr }
 }
 const geoOf = pos => ({ W: pos.pageSize.width, H: pos.pageSize.height, m: new Map(pos.elements.map(e => [e.id, e])) })
 function inkAnchor(o) {

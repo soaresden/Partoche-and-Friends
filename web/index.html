@@ -358,6 +358,7 @@
       <span class="sep"></span>
       <button id="vTracksBtn" class="btn" title="Pistes : affichage, son, instruments"><svg class="ic"><use href="#i-tracks"/></svg><span class="lbl">Pistes</span></button>
       <button id="vNamesBtn" class="btn" title="Noms des notes"><svg class="ic"><use href="#i-note"/></svg><span class="lbl" id="vNamesLbl">Notes</span></button>
+      <button id="vInstrBtn" class="btn" title="Mon instrument : tablature, transposition"><span class="emo">🎸</span><span class="lbl" id="vInstrLbl">Instrument</span></button>
       <span class="sep"></span>
       <button id="vZout" class="btn icon" title="Dézoomer"><svg class="ic"><use href="#i-zout"/></svg></button>
       <button id="vZin" class="btn icon" title="Zoomer"><svg class="ic"><use href="#i-zin"/></svg></button>
@@ -489,6 +490,23 @@
     <label class="prow"><input type="checkbox" id="vOptOctave"> Numéro d'octave (C4, Do4)</label>
     <label class="prow"><input type="checkbox" id="vOptAbove"> Au-dessus de la portée</label>
     <label class="prow" id="vRowManual"><input type="checkbox" id="vOptHideManual" checked> Masquer les noms déjà écrits à la main</label>
+  </div>
+
+  <div id="vInstrPop" class="pop" hidden>
+    <div class="prow between"><b>Tablature</b><span class="muted small">pour toutes tes partitions</span></div>
+    <div class="seg small" id="vTabSeg">
+      <button data-v="">Aucune</button><button data-v="bass4">Basse</button><button data-v="bass5">Basse 5</button><button data-v="guitar">Guitare</button><button data-v="uke">Ukulélé</button>
+    </div>
+    <div id="vTabRow">
+      <label class="prow">Piste <select id="vTabPart" class="sndsel"></select></label>
+      <label class="prow"><input type="checkbox" id="vTabOnly"> Tablature seule (cacher la portée d'origine)</label>
+    </div>
+    <div class="prow between"><b>Transposer ce morceau</b><button id="vShiftReset" class="btn chipbtn">Origine</button></div>
+    <div class="prow between"><button id="vShiftDown" class="btn icon" title="Un demi-ton plus grave">−</button><span id="vShiftVal"></span><button id="vShiftUp" class="btn icon" title="Un demi-ton plus aigu">+</button></div>
+    <p class="muted small">Le son suit : pour chanter plus grave ou plus aigu, ou jouer avec un capodastre.</p>
+    <div class="prow between"><b>Je lis pour un instrument en…</b></div>
+    <select id="vReadAs" class="sndsel"></select>
+    <p class="muted small">Change les notes écrites, pas le son : tu restes juste avec le groupe.</p>
   </div>
 
   <div id="vSpeedPop" class="pop" hidden>
