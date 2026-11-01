@@ -1,4 +1,4 @@
-﻿﻿# Mini serveur local de Partoche and Friends pour Windows (rien à installer : PowerShell est fourni avec Windows).
+﻿# Mini serveur local de Partoche and Friends pour Windows (rien à installer : PowerShell est fourni avec Windows).
 # Sert le dossier « app » sur http://localhost:53682/ (adresse autorisée par l'appli pCloud) et ouvre le navigateur.
 # Le dossier « Partitions » est présenté comme un dossier Partoche (même chose que serveur.py) :
 #   Partitions/*.mscz (sous-dossiers compris) -> MSCZ/…   ·   Partitions/Friends/ -> Friends/ (profil, annotations)
