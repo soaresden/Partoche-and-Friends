@@ -6,7 +6,8 @@
 <p align="center">
 <a href="https://soaresden.github.io/Partoche-and-Friends/"><b>▶ Ouvrir l'appli</b></a> ·
 <a href="https://soaresden.github.io/Partoche-and-Friends/tuto.html"><b>📖 Le tuto pas à pas</b></a> ·
-<a href="https://github.com/soaresden/Partoche-and-Friends/releases/latest/download/Partoche-and-Friends.apk"><b>📱 L'APK Android</b></a>
+<a href="https://github.com/soaresden/Partoche-and-Friends/releases/latest/download/Partoche-and-Friends.apk"><b>📱 L'APK Android</b></a> ·
+<a href="https://github.com/soaresden/Partoche-and-Friends/releases/download/pc/Partoche-and-Friends-PC.zip"><b>💻 Le zip pour ton ordi</b></a>
 </p>
 
 <p align="center"><img src="docs/img/ouverture.png" width="720" alt="L'écran d'ouverture : le groupe joue, et Paf le chien regarde passer la voiture"></p>
@@ -66,7 +67,11 @@ Tout est expliqué pas à pas dans **[le tuto](https://soaresden.github.io/Parto
 
 Le Client ID n'est pas dans le dépôt : sur un PC, il va dans `web/config.local.js` (ignoré par git) ; sinon l'appli le demande ou le reçoit par l'invitation.
 
-**Tester sur le PC** : double-cliquer sur `Lancer.bat` (Python requis), puis ouvrir <http://localhost:53682/>.
+### 💻 Sur son ordi, sans GitHub ni pCloud
+
+**[Partoche-and-Friends-PC.zip](https://github.com/soaresden/Partoche-and-Friends/releases/download/pc/Partoche-and-Friends-PC.zip)** : décompresser, mettre ses `.mscz` dans le dossier **Partitions** (sous-dossiers compris), double-cliquer sur **Lancer Partoche and Friends.bat** (Windows, rien à installer) ou **Lancer (Mac ou Linux).command**. L'appli s'ouvre sur <http://localhost:53682/> → « 📁 Mes partitions sur cet ordi ». Tout le lecteur (tablature, annotations, boucle…) marche ; rien n'est partagé, et pCloud reste possible depuis cette version pour jouer avec ses potes. Le zip est refait automatiquement à chaque mise à jour (`.github/workflows/zip.yml`, lanceurs dans `tools/pc/`).
+
+**Tester depuis le dépôt** : double-cliquer sur `Lancer.bat` (Python requis) ; les partitions de test vont dans `Partitions/` à la racine (ignoré par git).
 
 ## Sécurité, en clair
 

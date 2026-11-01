@@ -1,5 +1,5 @@
 // Partoche and Friends — interface
-import { openSpace, takeOAuthRedirect, hasPcloud, pcloudLoginUrl, forgetPcloud, currentPcloud, adoptPcloud, MINE, sharedFolders, createShared, checkLink, setMyRoot, clientId, setClientId, redirectUri, findExisting } from './cloud.js'
+import { openSpace, takeOAuthRedirect, hasPcloud, pcloudLoginUrl, forgetPcloud, currentPcloud, adoptPcloud, MINE, sharedFolders, createShared, checkLink, setMyRoot, clientId, setClientId, redirectUri, findExisting, localFolder } from './cloud.js'
 import { newGroup, readInvite, inviteUrl, randomId, Relay, makeDeviceLink, readDeviceLink, openDeviceLink } from './group.js'
 import { Library, emptyIndex, STATUS, normTitle } from './library.js'
 import { Viewer, scoreInfo } from './viewer.js'
@@ -49,8 +49,8 @@ async function boot() {
   // lien d'invitation et pas de connexion pCloud active (rien de configuré, ou une config commencée et pas finie) :
   // on consulte tout de suite ; « ☁️ Contribuer » reprendra la connexion
   if (inv && (!kind || (kind === 'pcloud' && !hasPcloud()))) { lsSet('maf:space', 'guest'); return boot() }
-  if (!kind) return step('Welcome')
-  if (kind === 'guest' && !lsGet('maf:invite', null)) { localStorage.removeItem('maf:space'); return step('Welcome') }
+  if (!kind) return welcome()
+  if (kind === 'guest' && !lsGet('maf:invite', null)) { localStorage.removeItem('maf:space'); return welcome() }
   if (kind === 'pcloud' && !hasPcloud()) return lsGet('maf:intent', '') ? setupSpace() : setupStart()
   try {
     step('', 'Ouverture de ton espace…')
@@ -76,6 +76,7 @@ async function boot() {
     console.error(e)
     if (e.code === 'NO_ROOT') return setupFolder()
     if (e.code === 'NO_READ') return step('', 'Lecture impossible de ton dossier pCloud : ' + e.message)
+    if (kind === 'local') return step('', 'Dossier Partitions inaccessible : ' + (e.message || e) + '. Relance « Lancer Partoche and Friends ».')
     if (kind === 'pcloud') forgetPcloud()
     return setupSpace('Connexion impossible : ' + (e.message || e))
   }
@@ -84,13 +85,22 @@ async function boot() {
 }
 function setupMsg(m) { const e = $('#setupErr'); e.hidden = !m; e.textContent = m; e.classList.toggle('err', /impossible|erreur|illisible|incorrect/i.test(m)) }
 for (const b of $$('[data-back]')) b.onclick = () => {
-  if (b.dataset.back === 'welcome') { localStorage.removeItem('maf:intent'); step('Welcome') } else setupStart()
+  if (b.dataset.back === 'welcome') { localStorage.removeItem('maf:intent'); welcome() } else setupStart()
 }
 
 // ---- accueil ----
 $('#btnSetup').onclick = () => setupStart()
 $('#btnResume').onclick = () => { lsSet('maf:intent', 'resume'); setupSpace() }
 $('#btnDemo').onclick = () => { lsSet('maf:space', 'demo'); lsSet('maf:intent', 'new'); boot() }
+$('#btnLocal').onclick = () => { lsSet('maf:space', 'local'); lsSet('maf:intent', 'new'); boot() }
+// version zip lancée sur l'ordi : le dossier « Partitions » est proposé en premier
+async function welcome() {
+  step('Welcome')
+  const lf = await localFolder()
+  $('#localBox').hidden = !lf
+  $('#btnSetup').classList.toggle('primary', !lf)
+  if (lf) $('#localPath').textContent = lf.path || lf.folder || 'Partitions'
+}
 
 // ---- 1. partir de rien / j'ai un lien ----
 function setupStart(pick) {
@@ -287,7 +297,7 @@ $('#btnFolderNew').onclick = async () => {
 // ---- 4. profil ----
 function setupProfile() {
   step('Profile')
-  $('#profileTitle').textContent = space.kind === 'demo' ? 'Comment tu t’appelles ?' : '3. Comment les autres te voient'
+  $('#profileTitle').textContent = SOLO() ? 'Comment tu t’appelles ?' : '3. Comment les autres te voient'
   $('#pName').value = lib.me.name || ''; $('#pInstr').value = lib.me.instruments || ''
   setLookP(lib.me.emoji && lib.me.emoji !== '🎵' ? lib.me.emoji : '🎻', lib.me.color && lib.me.color !== '#3e8ed0' ? lib.me.color : COLORS[0])
   $('#pName').focus()
@@ -337,7 +347,7 @@ async function finishSetup() {
   }
   if (inv) return join(inv)
   if (intent === 'resume') { localStorage.removeItem('maf:intent'); toast('Pas de collectif trouvé dans ton pCloud : choisis comment commencer.', 5000) }
-  if (intent === 'new' || space.kind === 'demo') return join({ g: { ...newGroup(lsGet('maf:groupName', '') || (space.kind === 'demo' ? 'Collectif démo' : '')), admin: lib.me.id }, m: [] })
+  if (intent === 'new' || SOLO()) return join({ g: { ...newGroup(lsGet('maf:groupName', '') || (space.kind === 'demo' ? 'Collectif démo' : space.kind === 'local' ? 'Mes partitions' : '')), admin: lib.me.id }, m: [] })
   setupStart()
 }
 async function join(inv) {
@@ -362,12 +372,13 @@ async function publishMyLink() {
 //  BIBLIOTHÈQUE
 // =====================================================================
 const GUEST = () => space && space.kind === 'guest'
+const SOLO = () => space && (space.kind === 'demo' || space.kind === 'local')   // rien n'est partagé
 async function startMain(justJoined) {
   show('main'); applyTheme(lib.me.color)
   document.body.classList.toggle('guest', GUEST())
   $('#guestBar').hidden = !GUEST()
   $('#groupTitle').textContent = lib.index.group.name
-  $('#spaceInfo').textContent = space.kind === 'demo' ? 'mode démo · rien n’est partagé' : GUEST() ? '👀 consultation · sans compte' : `pCloud · dossier « ${(space.root || {}).name || ''} »`
+  $('#spaceInfo').textContent = space.kind === 'demo' ? 'mode démo · rien n’est partagé' : space.kind === 'local' ? '💻 dossier Partitions de cet ordi' : GUEST() ? '👀 consultation · sans compte' : `pCloud · dossier « ${(space.root || {}).name || ''} »`
   if (space.kind === 'pcloud' && !lib.me.link) { try { await publishMyLink(); await lib.save() } catch (e) { toast('Lien de partage impossible : ' + e.message, 6000) } }
   if (!GUEST() && !lib.index.group.admin && !lib.index.knows.length) { lib.index.group.admin = lib.me.id; lib.save().catch(() => { }) }
   renderAll()
@@ -628,7 +639,7 @@ $('#btnAdd').onclick = () => $('#fileIn').click()
 $('#fileIn').onchange = async () => {
   const files = [...$('#fileIn').files]; $('#fileIn').value = ''
   for (const f of files) {
-    toast('Envoi de « ' + f.name + ' » dans ton ' + (space.kind === 'demo' ? 'espace démo' : 'pCloud') + '…', 20000)
+    toast('Envoi de « ' + f.name + ' » dans ton ' + (space.kind === 'demo' ? 'espace démo' : space.kind === 'local' ? 'dossier Partitions' : 'pCloud') + '…', 20000)
     try {
       const info = scoreInfo(new Uint8Array(await f.arrayBuffer()), f.name)
       await lib.addScore(f, info)
@@ -721,15 +732,15 @@ function qr(el, text) {
   el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 16, scalable: true })
 }
 $('#btnInvite').onclick = () => {
-  const demo = space.kind === 'demo'
+  const demo = SOLO()
   const url = demo ? '' : inviteUrl(lib.index.group, lib.members(), clientId())
-  $('#inviteOut').value = demo ? 'En mode démo, rien n’est partagé : connecte ton pCloud pour inviter des potes.' : url
+  $('#inviteOut').value = demo ? (space.kind === 'local' ? 'Tes partitions sont sur cet ordi : pour inviter des potes, il faut un pCloud (voir le tuto).' : 'En mode démo, rien n’est partagé : connecte ton pCloud pour inviter des potes.') : url
   $('#inviteQr').parentElement.hidden = demo
   if (!demo) qr($('#inviteQr'), url)
   $('#inviteDlg').showModal()
 }
 $('#btnDevice').onclick = async () => {
-  if (space.kind !== 'pcloud') return toast('En mode démo, il n’y a rien à transférer.')
+  if (space.kind !== 'pcloud') return toast(space.kind === 'local' ? 'Tes partitions sont sur cet ordi : rien à transférer.' : 'En mode démo, il n’y a rien à transférer.')
   // juste la connexion pCloud (+ dossier) et le Client ID : le profil, la tablette le relit dans pCloud.
   // (tout mettre dans le QR code le rendait trop gros pour être généré)
   try {
@@ -852,7 +863,7 @@ async function flushSave() {
   const id = current.id, ink = saveInk; saveInk = null
   try {
     await lib.saveNotes(id, JSON.parse(JSON.stringify(ink)))
-    $('#vSaved').textContent = space.kind === 'demo' ? 'Enregistré (démo)' : 'Enregistré · visible par le collectif'
+    $('#vSaved').textContent = space.kind === 'demo' ? 'Enregistré (démo)' : space.kind === 'local' ? 'Enregistré sur cet ordi' : 'Enregistré · visible par le collectif'
     relay && relay.send({ ev: 'ink', score: id })
   } catch (e) { $('#vSaved').textContent = '⚠️ non enregistré'; toast('Enregistrement impossible : ' + e.message, 6000); saveInk = saveInk || ink }
 }

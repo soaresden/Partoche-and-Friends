@@ -1,0 +1,46 @@
+# Fabrique le zip « à lancer sur son ordi » et le publie dans la release « pc » (remplacé à chaque fois).
+#   - à chaque changement dans web/ ou tools/pc/ sur main, ou à la main (Actions -> Zip PC -> Run workflow)
+#   - lien fixe : https://github.com/soaresden/Partoche-and-Friends/releases/download/pc/Partoche-and-Friends-PC.zip
+#   - contenu : app/ (= web/, sans config.local.js), Partitions/ (vide), lanceurs Windows (PowerShell) et Mac/Linux (Python)
+name: Zip PC
+on:
+  push:
+    branches: [main]
+    paths: ['web/**', 'tools/pc/**', '.github/workflows/zip.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zip-pc
+  cancel-in-progress: true
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assembler le dossier
+        run: |
+          D="Partoche and Friends"
+          mkdir -p "$D/Partitions"
+          cp -r web "$D/app"
+          rm -f "$D/app/config.local.js"
+          cp tools/pc/* "$D/"
+          chmod +x "$D/Lancer (Mac ou Linux).command"
+          printf 'Mets tes partitions MuseScore (.mscz) ici, sous-dossiers compris.\r\n' > "$D/Partitions/Mets tes partitions ici.txt"
+          zip -r -X Partoche-and-Friends-PC.zip "$D"
+          unzip -l Partoche-and-Friends-PC.zip | tail -3
+      - name: Publier
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view pc >/dev/null 2>&1; then
+            gh release create pc --title "💻 Version à lancer sur son ordi" --latest=false --notes "## 💻 Partoche and Friends sur ton ordi, sans GitHub
+          **➡️ [Partoche-and-Friends-PC.zip](https://github.com/${{ github.repository }}/releases/download/pc/Partoche-and-Friends-PC.zip)**
+
+          1. Décompresse le zip.
+          2. Mets tes partitions .mscz dans le dossier **Partitions**.
+          3. Windows : double-clic sur **Lancer Partoche and Friends.bat** (rien à installer). Mac : **Lancer (Mac ou Linux).command**.
+
+          Tout est expliqué dans **LISEZ-MOI.txt**. Ce zip est remis à jour automatiquement avec l'appli."
+          fi
+          gh release upload pc Partoche-and-Friends-PC.zip --clobber

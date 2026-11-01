@@ -225,6 +225,42 @@ class DemoSpace {
 }
 
 // ---------------------------------------------------------------------
+//  Sur cet ordi (version zip, lanceur local) : le dossier « Partitions » à côté du lanceur.
+//  Le petit serveur local (tools/pc) le présente comme un dossier Partoche :
+//    Partitions/*.mscz (sous-dossiers compris) -> MSCZ/… ; Partitions/Friends/ -> Friends/ (profil, annotations)
+//  Rien n'est partagé : c'est le mode solo, avec ses propres fichiers.
+// ---------------------------------------------------------------------
+export async function localFolder() {
+  try { const r = await fetch('_paf/info', { cache: 'no-store' }); return r.ok ? await r.json() : null } catch { return null }
+}
+class LocalSpace {
+  constructor() { this.kind = 'local'; this.index = {} }
+  async init() { await this.refresh(); return this }
+  async refresh() {
+    const r = await fetch('_paf/list', { cache: 'no-store' })
+    if (!r.ok) throw new Error('le lanceur Partoche and Friends ne répond pas (fenêtre fermée ?)')
+    this.index = await r.json()
+    return this.index
+  }
+  url(path) { return '_paf/file?p=' + encodeURIComponent(path) }
+  async put(path, data) {
+    const blob = data instanceof Blob ? data : new Blob([typeof data === 'string' ? data : JSON.stringify(data)])
+    const r = await fetch(this.url(path), { method: 'PUT', body: blob })
+    if (!r.ok) throw new Error('écriture impossible dans le dossier Partitions (' + r.status + ')')
+    const meta = await r.json()
+    this.index[path] = meta
+    return meta
+  }
+  async getBytes(path) { const r = await fetch(this.url(path), { cache: 'no-store' }); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null }
+  async getText(path) { const b = await this.getBytes(path); return b ? new TextDecoder().decode(b) : null }
+  async getJson(path) { const t = await this.getText(path); return t ? JSON.parse(t) : null }
+  list(prefix, deep) { return PcloudSpace.prototype.list.call(this, prefix, deep) }
+  async remove(path) { await fetch(this.url(path), { method: 'DELETE' }); delete this.index[path] }
+  async shareLink() { return { link: '', pw: '' } }
+  async account() { const i = await localFolder(); return { email: 'cet ordi', premium: false, folder: (i && i.folder) || 'Partitions' } }
+}
+
+// ---------------------------------------------------------------------
 //  Consultation : ouvert par un lien d'invitation, sans compte pCloud.
 //  On lit les dossiers des membres (leurs liens de partage), on n'écrit rien nulle part.
 // ---------------------------------------------------------------------
@@ -245,5 +281,6 @@ class GuestSpace {
 export async function openSpace(kind) {
   if (kind === 'pcloud') return new PcloudSpace(lsGet(TOKEN_KEY, {}), myRoot()).init()
   if (kind === 'guest') return new GuestSpace().init()
+  if (kind === 'local') return new LocalSpace().init()
   return new DemoSpace().init()
 }

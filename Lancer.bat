@@ -1,7 +1,9 @@
 @echo off
 chcp 65001 >nul
 title Partoche and Friends
-cd /d "%~dp0web"
+rem Pour tester depuis le dépôt : l'appli (web/) + un dossier « Partitions » à la racine du dépôt (ignoré par git).
+rem La version zip pour tout le monde (sans Python) : tools/pc, publiée dans les Releases.
+cd /d "%~dp0"
 
 rem Python : "python" ou le lanceur "py"
 set PY=
@@ -13,8 +15,5 @@ if not defined PY (
   exit /b 1
 )
 
-echo Partoche and Friends tourne sur http://localhost:53682
-echo Ferme cette fenetre pour arreter.
-start "" http://localhost:53682/
-%PY% -m http.server 53682
+%PY% tools\pc\serveur.py web Partitions
 pause

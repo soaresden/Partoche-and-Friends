@@ -1,0 +1,32 @@
+﻿﻿PARTOCHE AND FRIENDS — à lancer sur ton ordi
+=============================================
+
+1. Décompresse le zip (Windows : clic droit > « Extraire tout… »).
+   Ne lance rien depuis l'intérieur du zip.
+
+2. Mets tes partitions MuseScore (.mscz) dans le dossier « Partitions ».
+   Tu peux faire des sous-dossiers (Rock, Classique…) : tout est trouvé.
+
+3. Lance :
+   - Windows : double-clic sur « Lancer Partoche and Friends.bat »
+     (si Windows affiche « Windows a protégé votre ordinateur » :
+      « Informations complémentaires » > « Exécuter quand même »)
+   - Mac : clic droit sur « Lancer (Mac ou Linux).command » > Ouvrir
+   - Linux : sh "Lancer (Mac ou Linux).command"
+
+4. Le navigateur s'ouvre sur http://localhost:53682/
+   Choisis « 📁 Mes partitions sur cet ordi », donne ton prénom : c'est prêt.
+   Laisse la petite fenêtre noire ouverte pendant que tu joues ; ferme-la pour arrêter.
+
+Tu ajoutes une partition plus tard ? Glisse-la dans « Partitions » puis
+« ⟳ Actualiser » dans l'appli : elle apparaît avec une étiquette NEW.
+
+BON À SAVOIR
+  - Tes annotations, statuts et ton profil sont rangés dans Partitions/Friends/ :
+    ne supprime pas ce dossier, et garde-le pour une mise à jour.
+  - Mise à jour : télécharge le nouveau zip et remplace tout SAUF ton dossier « Partitions ».
+  - Ici, rien n'est partagé. Pour monter une bibliothèque avec tes potes, il faut un pCloud :
+    tout est expliqué dans le tuto, http://localhost:53682/tuto.html
+    (bouton « ⚙️ Configurer » sur l'écran d'accueil). Ça marche aussi depuis cette version :
+    l'adresse http://localhost:53682/ est autorisée pour la connexion pCloud.
+  - Sans rien installer, il y a aussi le site : https://soaresden.github.io/Partoche-and-Friends/
